@@ -1,3 +1,4 @@
+//helpful link for match: https://golang.org/src/path/filepath/match_test.go
 package main
 
 import (
@@ -6,18 +7,17 @@ import (
 	//"os"
 	//"strconv"
 	//"strings"
-	//"github.com/cloudfoundry/cli/plugin/models"
+	"github.com/cloudfoundry/cli/plugin/models"
 	"github.com/cloudfoundry/cli/plugin" //standard//https://github.com/cloudfoundry/cli/blob/8c310da376377c53f001d916708c056ce1558959/plugin/plugin.go
 
-	//"path/filepath" //
-	//"github.com/cloudfoundry/cli/cf/terminal" //for table || https://github.com/cloudfoundry/cli/blob/4a108fd21d6633b250f6d9f46e870967cae96ac0/cf/terminal/table.go
-	"github.com/cloudfoundry/cli/cf/api/app_instances"
+	"path/filepath" //for matches//https://golang.org/pkg/path/filepath/
+	"github.com/cloudfoundry/cli/cf/terminal" //for table || https://github.com/cloudfoundry/cli/blob/4a108fd21d6633b250f6d9f46e870967cae96ac0/cf/terminal/table.go
+	
 )
 
 //Wildcard is this plugin
 type Wildcard struct {
-	appInstancesRepo app_instances.AppInstancesRepository
-	//matchedApps 	[]Apps
+	matchedApps 	[]plugin_models.ApplicationSummary
 }
 
 //GetMetadata returns metatada
@@ -89,14 +89,25 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 //this is the actual implementation
 //one method per command
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
-
+	pattern := args[1]
 	// if err := cmd.usage(args); nil != err { //usage is just confirmation for correct number of args
 	// 	fmt.Println(err) //printing
 	// 	os.Exit(1) //failuref
 	// }
-	output, s := cliConnection.GetApps()
-	fmt.Println(output)
-	fmt.Println(output[0].Name)
-	fmt.Println(output[1].Name)
-	fmt.Println(s)
+	output, _ := cliConnection.GetApps()
+	for i := 0; i < (len(output)); i++ {
+		ok, _ := filepath.Match(pattern, output[i].Name)
+		if ok {
+			cmd.matchedApps = append(cmd.matchedApps, output[i])
+		}
+	}
+
+	for i := 0; i < (len(cmd.matchedApps)); i++ {
+		fmt.Println(cmd.matchedApps[i].Name)
+	}
+
+
+
+
+
 }
