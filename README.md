@@ -1,2 +1,2 @@
-# DeletePlugin
-Delete Wildcard plugin for CF 
+# Wildcard_Plugin
+Wildcard plugin for CF 
