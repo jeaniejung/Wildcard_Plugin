@@ -1,15 +1,20 @@
 //helpful link for match: https://golang.org/src/path/filepath/match_test.go
+//GetApps()'s apps-summary is WAY too limited!!! They REALLY need to improve it >:(
+//
+
 package main
 
 import (
 	"errors"
-	//"fmt" //standard
+	"fmt" //standard
 	"os"
 	//"reflect" //used to see type of object
 	"strconv"
 	"github.com/guidowb/cf-go-client/panic" //panics 
 	"strings"
 	"github.com/cloudfoundry/cli/plugin/models"
+	//"github.com/cloudfoundry/cli/cf/api"
+	//"github.com/cloudfoundry/cli/cf/formatters"
 	"github.com/cloudfoundry/cli/plugin" //standard//https://github.com/cloudfoundry/cli/blob/8c310da376377c53f001d916708c056ce1558959/plugin/plugin.go
 
 	"path/filepath" //for matches//https://golang.org/pkg/path/filepath/
@@ -91,6 +96,7 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 //WildcardCommand creates a new instance of this plugin
 //this is the actual implementation
 //one method per command
+
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
 	defer panic.HandlePanics()
 	pattern := args[1]
@@ -109,19 +115,26 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 	// 	fmt.Println(cmd.matchedApps[i].Name)
 	// }
 	//fmt.Println(reflect.TypeOf(cmd.matchedApps))
+
 	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
 	table := terminal.NewTable(cmd.ui, []string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
 	for _, app := range cmd.matchedApps {
 		 var urls []string
 		for _, route := range app.Routes {
-			urls = append(urls, route.Host)
+			if route.Host == "" {
+				urls = append(urls, route.Domain.Name)
+			}
+			urls = append(urls, fmt.Sprintf("%s.%s", route.Host, route.Domain.Name))
 		}
+		//memory := strconv.FormatInt(app.Memory, 10)
+		//.ToMegabytes(memory)),
 		table.Add(
 			app.Name,
 			app.State,
 			strconv.Itoa(app.RunningInstances),
-			strconv.FormatInt(app.Memory, 2),
-			strconv.FormatInt(app.DiskQuota, 2),
+			//app.api.ToModels(),
+			strconv.FormatInt(app.Memory, 10),
+			strconv.FormatInt(app.DiskQuota, 10),
 			strings.Join(urls, ", "),
 		)
 		// if cmd.pluginCall {
