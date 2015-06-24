@@ -19,7 +19,15 @@ import (
 
 	"path/filepath" //for matches//https://golang.org/pkg/path/filepath/
 	"github.com/cloudfoundry/cli/cf/terminal" //for table || https://github.com/cloudfoundry/cli/blob/4a108fd21d6633b250f6d9f46e870967cae96ac0/cf/terminal/table.go
-	//. "github.com/cloudfoundry/cli/cf/i18n"
+
+
+	//for implementing T
+	"github.com/cloudfoundry/cli/cf/trace"
+	"github.com/cloudfoundry/cli/cf/i18n"
+	"github.com/cloudfoundry/cli/cf/i18n/detection"
+	"github.com/cloudfoundry/cli/cf/configuration/core_config"
+	"github.com/cloudfoundry/cli/cf/configuration/config_helpers"
+
 )
 
 //Wildcard is this plugin
@@ -47,19 +55,11 @@ func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 				},
 			}, 
 			{
-				Name:     "wildcard-delete-a",
-				Alias:	  "wc-da",
-				HelpText: "Delete all apps in the target space matching the wildcard",
+				Name:     "wildcard-delete",
+				Alias:	  "wc-d",
+				HelpText: "Delete apps in the target space matching the wildcard",
 				UsageDetails: plugin.Usage{
 					Usage: "cf wildcard-delete-a APP_NAME_WITH_WILDCARD",
-				},
-			},
-			{
-				Name:     "wildcard-delete-i",
-				Alias:	  "wc-di",
-				HelpText: "Interactively delete apps in the target space matching the wildcard",
-				UsageDetails: plugin.Usage{
-					Usage: "cf wildcard-delete-i APP_NAME_WITH_WILDCARD",
 				},
 			},
 		},
@@ -86,10 +86,8 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 	if args[0] == "wildcard-apps" { //checking is very imp.
 		cmd.WildcardCommandApps(cliConnection, args)
 	} else if args[0] == "wildcard-delete-a" {
-		cmd.WildcardCommandDeleteAll(cliConnection, args)
-	} //else if args[0] == "wildcard-delete-i" {
-	// 	cmd.WildcardCommandDeleteInteractive(cliConnection, args)
-	// }
+		cmd.WildcardCommandDelete(cliConnection, args)
+	}
 }
 
 
@@ -97,8 +95,24 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 //WildcardCommand creates a new instance of this plugin
 //this is the actual implementation
 //one method per command
+func CloudControllerCreator() {
+	errorHandler := func(err error) {
+		if err != nil {
+			fmt.Sprintf("Config error: %s", err)
+		}
+	}
+	cc_config := core_config.NewRepositoryFromFilepath(config_helpers.DefaultFilePath(), errorHandler)
+	i18n.T = i18n.Init(cc_config, &detection.JibberJabberDetector{})
+	if os.Getenv("CF_TRACE") != "" {
+		trace.Logger = trace.NewLogger(os.Getenv("CF_TRACE"))
+	} else {
+		trace.Logger = trace.NewLogger(cc_config.Trace())
+	}
+
+}
 
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
+	CloudControllerCreator()
 	defer panic.HandlePanics()
 	pattern := args[1]
 	output, _ := cliConnection.GetApps()
@@ -109,7 +123,8 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 		}
 	}
 	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
-	table := terminal.NewTable(cmd.ui, []string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
+	//table := terminal.NewTable(cmd.ui, []string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
+	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
 		 var urls []string
 		for _, route := range app.Routes {
@@ -130,7 +145,7 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 	table.Print()
 }
 
-func (cmd *Wildcard) WildcardCommandDeleteAll(cliConnection plugin.CliConnection, args []string) {
+func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string) {
 	cmd.WildcardCommandApps(cliConnection, args)
 	for _, app := range cmd.matchedApps {
 		cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
