@@ -62,7 +62,7 @@ func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 				Alias:	  "wc-d",
 				HelpText: "Delete apps in the target space matching the wildcard",
 				UsageDetails: plugin.Usage{
-					Usage: "cf wildcard-delete-a APP_NAME_WITH_WILDCARD",
+					Usage: "cf wildcard-delete APP_NAME_WITH_WILDCARD",
 				},
 			},
 		},
@@ -88,12 +88,10 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 	//fmt.Println(formatters.ToMegabytes("d"))
 	if args[0] == "wildcard-apps" { //checking is very imp.
 		cmd.WildcardCommandApps(cliConnection, args)
-	} else if args[0] == "wildcard-delete-a" {
+	} else if args[0] == "wildcard-delete" {
 		cmd.WildcardCommandDelete(cliConnection, args)
 	}
 }
-
-
 
 //WildcardCommand creates a new instance of this plugin
 //this is the actual implementation
@@ -111,7 +109,6 @@ func CloudControllerCreator() {
 	} else {
 		trace.Logger = trace.NewLogger(cc_config.Trace())
 	}
-
 }
 
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
@@ -136,12 +133,6 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 			urls = append(urls, fmt.Sprintf("%s.%s", route.Host, route.Domain.Name))
 		}
 		table.Add(
-			// app.Name,
-			// app.State,
-			// strconv.Itoa(app.RunningInstances),
-			// strconv.FormatInt(app.Memory, 10),
-			// strconv.FormatInt(app.DiskQuota, 10),
-			// strings.Join(urls, ", "),
 			app.Name,
 			app.State, 
 			strconv.Itoa(app.RunningInstances),
@@ -159,6 +150,7 @@ func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, a
 		cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
 	}
 }
+
 
 
 
