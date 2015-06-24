@@ -23,10 +23,13 @@ import (
 
 	//for implementing T
 	"github.com/cloudfoundry/cli/cf/trace"
-	"github.com/cloudfoundry/cli/cf/i18n"
+	. "github.com/cloudfoundry/cli/cf/i18n"
 	"github.com/cloudfoundry/cli/cf/i18n/detection"
 	"github.com/cloudfoundry/cli/cf/configuration/core_config"
 	"github.com/cloudfoundry/cli/cf/configuration/config_helpers"
+	//for adding onto table
+	"github.com/cloudfoundry/cli/cf/formatters"
+	//"github.com/cloudfoundry/cli/cf/ui_helpers"
 
 )
 
@@ -102,7 +105,7 @@ func CloudControllerCreator() {
 		}
 	}
 	cc_config := core_config.NewRepositoryFromFilepath(config_helpers.DefaultFilePath(), errorHandler)
-	i18n.T = i18n.Init(cc_config, &detection.JibberJabberDetector{})
+	T = Init(cc_config, &detection.JibberJabberDetector{})
 	if os.Getenv("CF_TRACE") != "" {
 		trace.Logger = trace.NewLogger(os.Getenv("CF_TRACE"))
 	} else {
@@ -123,22 +126,27 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 		}
 	}
 	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
-	//table := terminal.NewTable(cmd.ui, []string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
 	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
 		 var urls []string
 		for _, route := range app.Routes {
-			if route.Host == "" {
+			if route.Host == "" { 
 				urls = append(urls, route.Domain.Name)
 			}
 			urls = append(urls, fmt.Sprintf("%s.%s", route.Host, route.Domain.Name))
 		}
 		table.Add(
+			// app.Name,
+			// app.State,
+			// strconv.Itoa(app.RunningInstances),
+			// strconv.FormatInt(app.Memory, 10),
+			// strconv.FormatInt(app.DiskQuota, 10),
+			// strings.Join(urls, ", "),
 			app.Name,
-			app.State,
+			app.State, 
 			strconv.Itoa(app.RunningInstances),
-			strconv.FormatInt(app.Memory, 10),
-			strconv.FormatInt(app.DiskQuota, 10),
+			formatters.ByteSize(app.Memory*formatters.MEGABYTE),
+			formatters.ByteSize(app.DiskQuota*formatters.MEGABYTE),
 			strings.Join(urls, ", "),
 		)
 	}
