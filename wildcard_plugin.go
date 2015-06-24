@@ -14,7 +14,7 @@ import (
 	"strings"
 	"github.com/cloudfoundry/cli/plugin/models"
 	//"github.com/cloudfoundry/cli/cf/api"
-	//"github.com/cloudfoundry/cli/cf/formatters"
+	"github.com/cloudfoundry/cli/cf/formatters"
 	"github.com/cloudfoundry/cli/plugin" //standard//https://github.com/cloudfoundry/cli/blob/8c310da376377c53f001d916708c056ce1558959/plugin/plugin.go
 
 	"path/filepath" //for matches//https://golang.org/pkg/path/filepath/
@@ -126,14 +126,16 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 			}
 			urls = append(urls, fmt.Sprintf("%s.%s", route.Host, route.Domain.Name))
 		}
-		//memory := strconv.FormatInt(app.Memory, 10)
+		memoryInBytes := strconv.FormatInt(app.Memory, 10)
+		memoryInMB, _ := formatters.ToMegabytes(memoryInBytes)
+
 		//.ToMegabytes(memory)),
 		table.Add(
 			app.Name,
 			app.State,
 			strconv.Itoa(app.RunningInstances),
 			//app.api.ToModels(),
-			strconv.FormatInt(app.Memory, 10),
+			strconv.FormatInt(memoryInMB, 10),
 			strconv.FormatInt(app.DiskQuota, 10),
 			strings.Join(urls, ", "),
 		)
