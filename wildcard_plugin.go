@@ -14,7 +14,7 @@ import (
 	"strings"
 	"github.com/cloudfoundry/cli/plugin/models"
 	//"github.com/cloudfoundry/cli/cf/api"
-	"github.com/cloudfoundry/cli/cf/formatters"
+	//"github.com/cloudfoundry/cli/cf/formatters"
 	"github.com/cloudfoundry/cli/plugin" //standard//https://github.com/cloudfoundry/cli/blob/8c310da376377c53f001d916708c056ce1558959/plugin/plugin.go
 
 	"path/filepath" //for matches//https://golang.org/pkg/path/filepath/
@@ -82,11 +82,12 @@ func (cmd *Wildcard) usage(args []string) error {
 //Run runs the plugin
 //called everytime user executes the command
 func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
+	//fmt.Println(formatters.ToMegabytes("d"))
 	if args[0] == "wildcard-apps" { //checking is very imp.
 		cmd.WildcardCommandApps(cliConnection, args)
-	} //else if args[0] == "wildcard-delete-a" {
-	//	cmd.WildcardCommandDeleteAll(cliConnection, args)
-	// } else if args[0] == "wildcard-delete-i" {
+	} else if args[0] == "wildcard-delete-a" {
+		cmd.WildcardCommandDeleteAll(cliConnection, args)
+	} //else if args[0] == "wildcard-delete-i" {
 	// 	cmd.WildcardCommandDeleteInteractive(cliConnection, args)
 	// }
 }
@@ -100,10 +101,6 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
 	defer panic.HandlePanics()
 	pattern := args[1]
-	// if err := cmd.usage(args); nil != err { //usage is just confirmation for correct number of args
-	// 	fmt.Println(err) //printing
-	// 	os.Exit(1) //failuref
-	// }
 	output, _ := cliConnection.GetApps()
 	for i := 0; i < (len(output)); i++ {
 		ok, _ := filepath.Match(pattern, output[i].Name)
@@ -111,11 +108,6 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 			cmd.matchedApps = append(cmd.matchedApps, output[i])
 		}
 	}
-	// for i := 0; i < (len(cmd.matchedApps)); i++ {
-	// 	fmt.Println(cmd.matchedApps[i].Name)
-	// }
-	//fmt.Println(reflect.TypeOf(cmd.matchedApps))
-
 	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
 	table := terminal.NewTable(cmd.ui, []string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
 	for _, app := range cmd.matchedApps {
@@ -126,24 +118,26 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 			}
 			urls = append(urls, fmt.Sprintf("%s.%s", route.Host, route.Domain.Name))
 		}
-		memoryInBytes := strconv.FormatInt(app.Memory, 10)
-		memoryInMB, _ := formatters.ToMegabytes(memoryInBytes)
-
-		//.ToMegabytes(memory)),
 		table.Add(
 			app.Name,
 			app.State,
 			strconv.Itoa(app.RunningInstances),
-			//app.api.ToModels(),
-			strconv.FormatInt(memoryInMB, 10),
+			strconv.FormatInt(app.Memory, 10),
 			strconv.FormatInt(app.DiskQuota, 10),
 			strings.Join(urls, ", "),
 		)
-		// if cmd.pluginCall {
-		// 	cmd.populatePluginModel(cmd.matchedApps)
-		// }
 	}
 	table.Print()
-
-	
 }
+
+func (cmd *Wildcard) WildcardCommandDeleteAll(cliConnection plugin.CliConnection, args []string) {
+	cmd.WildcardCommandApps(cliConnection, args)
+	for _, app := range cmd.matchedApps {
+		cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
+	}
+}
+
+
+
+
+
