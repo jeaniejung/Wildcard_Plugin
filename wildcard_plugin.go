@@ -96,7 +96,7 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 //WildcardCommand creates a new instance of this plugin
 //this is the actual implementation
 //one method per command
-func CloudControllerCreator() {
+func InitializeCliDependencies() {
 	errorHandler := func(err error) {
 		if err != nil {
 			fmt.Sprintf("Config error: %s", err)
@@ -110,10 +110,7 @@ func CloudControllerCreator() {
 		trace.Logger = trace.NewLogger(cc_config.Trace())
 	}
 }
-
-func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
-	CloudControllerCreator()
-	defer panic.HandlePanics()
+func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) []plugin_models.ApplicationSummary {
 	pattern := args[1]
 	output, _ := cliConnection.GetApps()
 	for i := 0; i < (len(output)); i++ {
@@ -122,6 +119,12 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 			cmd.matchedApps = append(cmd.matchedApps, output[i])
 		}
 	}
+	return output
+}
+func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
+	InitializeCliDependencies()
+	defer panic.HandlePanics()
+	cmd.getMatchedApps(cliConnection, args)
 	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
 	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
