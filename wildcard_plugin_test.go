@@ -5,7 +5,7 @@
 package main
 
 import (
-	. "github.com/jeaniejung/wildcard_plugin"
+	//. "github.com/jeaniejung/wildcard_plugin"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/cloudfoundry/cli/plugin/models"
@@ -44,13 +44,14 @@ var _ = Describe("WildcardPlugin", func() {
 			plugin_models.ApplicationSummary{"app3", "", "", 0, 0, 0, 0, nil},
 			plugin_models.ApplicationSummary{"app4", "", "", 0, 0, 0, 0, nil},
 			plugin_models.ApplicationSummary{"app5", "", "", 0, 0, 0, 0, nil},
+			plugin_models.ApplicationSummary{"app10", "", "", 0, 0, 0, 0, nil},
 			)
 		})
 		Context("With wildcard sp*", func() {
 			It("should return all apps starting with 'sp'", func() {
 				fakeCliConnection.GetAppsReturns(appsList, nil)
 				var err error
-				_, err = wildcardPlugin.WildcardCommandApps(fakeCliConnection, []string{"wc-a", "sp*"})
+				output, _  := wildcardPlugin.WildcardCommandApps(fakeCliConnection, []string{"wc-a", "sp*"})
 				Expect(err.Error()).To(Equal("App app1 not found"))
 			})
 			// It("should return all apps starting with 'sp'", func() {
