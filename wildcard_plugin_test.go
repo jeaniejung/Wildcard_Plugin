@@ -25,7 +25,7 @@ var _ = Describe("WildcardPlugin", func() {
 		fakeCliConnection = &fakes.FakeCliConnection{}
 		wildcardPlugin = &Wildcard{}
 	})
-	JustBeforeEach(func() {})
+	//JustBeforeEach(func() {})
 
 	Describe("Checking for correct results to wildcard-apps", func() {
 		BeforeEach(func() {

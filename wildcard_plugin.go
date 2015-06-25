@@ -119,7 +119,7 @@ func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []s
 			cmd.matchedApps = append(cmd.matchedApps, output[i])
 		}
 	}
-	return output
+	return cmd.matchedApps
 }
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
 	InitializeCliDependencies()
@@ -128,7 +128,7 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
 	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
-		 var urls []string
+		var urls []string
 		for _, route := range app.Routes {
 			if route.Host == "" { 
 				urls = append(urls, route.Domain.Name)
