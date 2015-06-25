@@ -16,18 +16,25 @@ import (
 //var_=.. allows us to eval Describe at the top level without the need to wrap it in "func init() {}"
 var _ = Describe("WildcardPlugin", func() {
 	var (
+
 		wildcardPlugin *Wildcard
 		fakeCliConnection *fakes.FakeCliConnection
+		s string
 	)
 	appsList := make([]plugin_models.ApplicationSummary, 10)
 
 	BeforeEach(func() {
 		fakeCliConnection = &fakes.FakeCliConnection{}
 		wildcardPlugin = &Wildcard{}
+
 	})
 	//JustBeforeEach(func() {})
 
 	Describe("Checking for correct results to wildcard-apps", func() {
+		BeforeEach(func() {
+		fakeCliConnection = &fakes.FakeCliConnection{}
+		wildcardPlugin = &Wildcard{}
+	})
 		BeforeEach(func() {
 			appsList = append(appsList,
 			plugin_models.ApplicationSummary{"spring-music", "", "", 0, 0, 0, 0, nil},
@@ -53,8 +60,47 @@ var _ = Describe("WildcardPlugin", func() {
 				//var err error
 				//wildcardPlugin.WildcardCommandApps(fakeCliConnection, []string{"wc-a", "sp*"})
 				output := wildcardPlugin.getMatchedApps(fakeCliConnection, []string{"wc-a", "sp*"})
-				//fmt.Println(output[0].Name)
-				Expect(output[1].Name).To(Equal("spring-mklusic"))
+				Expect(len(output)).To(Equal(5))
+				Expect(output[0].Name).To(Equal("spring-music"))
+				Expect(output[1].Name).To(Equal("spring-master"))
+				Expect(output[2].Name).To(Equal("spring-nana"))
+				Expect(output[3].Name).To(Equal("spring-spring"))
+				Expect(output[4].Name).To(Equal("springtime"))
+				
+			})
+			It("should return all apps starting with 'sp'", func() {
+				fakeCliConnection.GetAppsReturns(appsList, nil)
+				//var err error
+				//wildcardPlugin.WildcardCommandApps(fakeCliConnection, []string{"wc-a", "sp*"})
+				output := wildcardPlugin.getMatchedApps(fakeCliConnection, []string{"wc-a", "sp*"})
+				Expect(len(output)).To(Equal(5))
+				Expect(output[0].Name).To(Equal("spring-music"))
+				Expect(output[1].Name).To(Equal("spring-master"))
+				Expect(output[2].Name).To(Equal("spring-nana"))
+				Expect(output[3].Name).To(Equal("spring-spring"))
+				Expect(output[4].Name).To(Equal("springtime"))
+				
+			})
+			// It("should return all apps starting with 'sp'", func() {
+			// 	fakeCliConnection.GetAppsReturns(appsList, nil)
+			// 	var err error
+			// 	_, err = wildcardPlugin.getAppStatus(fakeCliConnection, "app1")
+			// 	Expect(err.Error()).To(Equal("App app1 not found"))
+			// })
+		})
+		Context("With wildcard sp*2", func() {
+			It("should return all apps starting with 'sp'", func() {
+				fakeCliConnection.GetAppsReturns(appsList, nil)
+				//var err error
+				//wildcardPlugin.WildcardCommandApps(fakeCliConnection, []string{"wc-a", "sp*"})
+				output := wildcardPlugin.getMatchedApps(fakeCliConnection, []string{"wc-a", "sp*"})
+				Expect(len(output)).To(Equal(5))
+				Expect(output[0].Name).To(Equal("spring-music"))
+				Expect(output[1].Name).To(Equal("spring-master"))
+				Expect(output[2].Name).To(Equal("spring-nana"))
+				Expect(output[3].Name).To(Equal("spring-spring"))
+				Expect(output[4].Name).To(Equal("springtime"))
+				
 			})
 			// It("should return all apps starting with 'sp'", func() {
 			// 	fakeCliConnection.GetAppsReturns(appsList, nil)
