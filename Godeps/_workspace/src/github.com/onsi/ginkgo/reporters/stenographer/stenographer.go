@@ -49,7 +49,7 @@ type Stenographer interface {
 	AnnounceSuccesfulMeasurement(spec *types.SpecSummary, succinct bool)
 
 	AnnouncePendingSpec(spec *types.SpecSummary, noisy bool)
-	AnnounceSkippedSpec(spec *types.SpecSummary)
+	AnnounceSkippedSpec(spec *types.SpecSummary, succinct bool, fullTrace bool)
 
 	AnnounceSpecTimedOut(spec *types.SpecSummary, succinct bool, fullTrace bool)
 	AnnounceSpecPanicked(spec *types.SpecSummary, succinct bool, fullTrace bool)
@@ -252,9 +252,21 @@ func (s *consoleStenographer) AnnouncePendingSpec(spec *types.SpecSummary, noisy
 	}
 }
 
-func (s *consoleStenographer) AnnounceSkippedSpec(spec *types.SpecSummary) {
-	s.print(0, s.colorize(cyanColor, "S"))
-	s.stream()
+func (s *consoleStenographer) AnnounceSkippedSpec(spec *types.SpecSummary, succinct bool, fullTrace bool) {
+	// Skips at runtime will have a non-empty spec.Failure. All others should be succinct.
+	if succinct || spec.Failure == (types.SpecFailure{}) {
+		s.print(0, s.colorize(cyanColor, "S"))
+		s.stream()
+	} else {
+		s.startBlock()
+		s.println(0, s.colorize(cyanColor+boldStyle, "S [SKIPPING]%s [%.3f seconds]", s.failureContext(spec.Failure.ComponentType), spec.RunTime.Seconds()))
+
+		indentation := s.printCodeLocationBlock(spec.ComponentTexts, spec.ComponentCodeLocations, spec.Failure.ComponentType, spec.Failure.ComponentIndex, true, succinct)
+
+		s.printNewLine()
+		s.printFailure(indentation, spec.State, spec.Failure, fullTrace)
+		s.endBlock()
+	}
 }
 
 func (s *consoleStenographer) AnnounceSpecTimedOut(spec *types.SpecSummary, succinct bool, fullTrace bool) {
@@ -344,7 +356,7 @@ func (s *consoleStenographer) printBlockWithMessage(header string, message strin
 
 func (s *consoleStenographer) printSpecFailure(message string, spec *types.SpecSummary, succinct bool, fullTrace bool) {
 	s.startBlock()
-	s.println(0, s.colorize(redColor+boldStyle, "%s [%.3f seconds]", message, spec.RunTime.Seconds()))
+	s.println(0, s.colorize(redColor+boldStyle, "%s%s [%.3f seconds]", message, s.failureContext(spec.Failure.ComponentType), spec.RunTime.Seconds()))
 
 	indentation := s.printCodeLocationBlock(spec.ComponentTexts, spec.ComponentCodeLocations, spec.Failure.ComponentType, spec.Failure.ComponentIndex, true, succinct)
 
@@ -353,10 +365,27 @@ func (s *consoleStenographer) printSpecFailure(message string, spec *types.SpecS
 	s.endBlock()
 }
 
+func (s *consoleStenographer) failureContext(failedComponentType types.SpecComponentType) string {
+	switch failedComponentType {
+	case types.SpecComponentTypeBeforeSuite:
+		return " in Suite Setup (BeforeSuite)"
+	case types.SpecComponentTypeAfterSuite:
+		return " in Suite Teardown (AfterSuite)"
+	case types.SpecComponentTypeBeforeEach:
+		return " in Spec Setup (BeforeEach)"
+	case types.SpecComponentTypeJustBeforeEach:
+		return " in Spec Setup (JustBeforeEach)"
+	case types.SpecComponentTypeAfterEach:
+		return " in Spec Teardown (AfterEach)"
+	}
+
+	return ""
+}
+
 func (s *consoleStenographer) printFailure(indentation int, state types.SpecState, failure types.SpecFailure, fullTrace bool) {
 	if state == types.SpecStatePanicked {
 		s.println(indentation, s.colorize(redColor+boldStyle, failure.Message))
-		s.println(indentation, s.colorize(redColor, "%v", failure.ForwardedPanic))
+		s.println(indentation, s.colorize(redColor, failure.ForwardedPanic))
 		s.println(indentation, failure.Location.String())
 		s.printNewLine()
 		s.println(indentation, s.colorize(redColor, "Full Stack Trace"))
