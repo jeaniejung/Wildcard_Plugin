@@ -1,0 +1,21 @@
+repo-master-uri: "https://github.com/jeaniejung/Wildcard_Plugin.git"
+repo-master-branch: "master"
+
+# Binary output
+binary-name: wildcard
+binary-version: 0.0.9
+
+# AWS S3 info
+binary-bucket: "cf-wildcard-plugin"
+release-access-key: ~ #{{aws-access-key}}
+release-secret-key: ~ #{{aws-secret-key}}
+#CF Data
+cf_api_endpoint: api.10.244.0.34.xip.io
+cf_user: admin
+cf_passwd: admin
+cf_org: dev
+cf_space: dev
+
+#test-director-target: "https://192.168.50.4:25555"
+#test-director-username: "admin"
+#test-director-password: "admin"
