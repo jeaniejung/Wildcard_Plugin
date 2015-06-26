@@ -13,13 +13,13 @@ resources:
     access_key_id: {{release-access-key}}
     secret_access_key: {{release-secret-key}}
 
-- name: "version"
-  type: semver
-  source:
-    bucket: {{binary-bucket}}
-    key: "version/wildcard"
-    access_key_id: {{release-access-key}}
-    secret_access_key: {{release-secret-key}}
+# - name: "version"
+#  type: semver
+#  source:
+#    bucket: {{binary-bucket}}
+#    key: "version/wildcard"
+#    access_key_id: {{release-access-key}}
+#    secret_access_key: {{release-secret-key}}
 
 jobs:
 - name: build-plugin
@@ -39,9 +39,9 @@ jobs:
   - put: plugin_binaries
     params:
       from: "repo/output/wildcard.all_platforms.(.+).tgz"
-  - put: "version"
-    params:
-      file: "version/number"    
+  #- put: "version"
+  #  params:
+  #    file: "version/number"    
 
 - name: test-plugin
   public: true
