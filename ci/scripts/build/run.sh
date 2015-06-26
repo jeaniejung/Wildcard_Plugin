@@ -6,7 +6,7 @@ TASK_ROOT_DIR=$PWD
 SCRIPT_DIR=$(dirname $0)
 
 BINARY_NAME=${BINARY_NAME:-wildcard}
-VERSION={VERSION:-0.0.9}
+VERSION=${VERSION:-0.0.9}
 
 go_version=`go version`
 echo "Building $BINARY_NAME with version: $VERSION for all platforms/archs with go version: $go_version"
