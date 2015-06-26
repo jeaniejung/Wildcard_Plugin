@@ -13,8 +13,9 @@ import (
 		//"github.com/onsi/gomega/matchers"
 	"fmt"
 	// "reflect"
-	testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
-	testcmd "github.com/cloudfoundry/cli/testhelpers/commands"
+	io_helpers "github.com/cloudfoundry/cli/testhelpers/io"
+	//testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
+	//testcmd "github.com/cloudfoundry/cli/testhelpers/commands"
 
 
 
@@ -33,11 +34,11 @@ var _ = Describe("WildcardPlugin", func() {
 			wildcardPlugin 		*Wildcard
 			fakeCliConnection 	*fakes.FakeCliConnection
 		)
-		runCommand := func(args ...string) bool {
-			wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
-			cmd := command_registry.Commands.FindCommand("apps")
-			return testcmd.RunCliCommand(cmd, args, requirementsFactory)
-		}
+		// runCommand := func(args ...string) bool {
+		// 	wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
+		// 	cmd := command_registry.Commands.FindCommand("apps")
+		// 	return testcmd.RunCliCommand(cmd, args, requirementsFactory)
+		// }
 		appsList := make([]plugin_models.ApplicationSummary, 0)
 		appsList = append(appsList,
 			plugin_models.ApplicationSummary{"spring-music", "", "", 0, 0, 0, 0, nil},
@@ -141,8 +142,8 @@ var _ = Describe("WildcardPlugin", func() {
 	})
 	Describe("Checking for correct results to WildcardCommandApps", func() {
 		var (
-			ui       			*testterm.FakeUI
-			wildcardPlugin Wildcard
+			//ui       			*testterm.FakeUI
+			wildcardPlugin *Wildcard
 			fakeCliConnection *fakes.FakeCliConnection
 		)
 		appsList := make([]plugin_models.ApplicationSummary, 0)
@@ -164,15 +165,19 @@ var _ = Describe("WildcardPlugin", func() {
 			plugin_models.ApplicationSummary{"app10", "", "", 0, 0, 0, 0, nil},
 		)
 		BeforeEach(func() {
-			ui = &testterm.FakeUI{}
+			//ui = &testterm.FakeUI{}
 			fakeCliConnection = &fakes.FakeCliConnection{}
-			wildcardPlugin = Wildcard{}
+			wildcardPlugin = &Wildcard{}
 		})
 		Context("With wildcard asterisk(*)", func() {
 			It("should return all apps starting with 'ca'", func() {
-				wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
-				runCommand()
-				fmt.Println(len(ui.Outputs))
+				fakeCliConnection.GetAppsReturns(appsList, nil)
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
+				})
+				fmt.Println(len(output))
+				fmt.Println(len(output[0]))
+				fmt.Println(output)
 				// fmt.Println(ui.Outputs[1])
 				// Expect(len(ui.Outputs[1])).To(Equal("10"))
 				// Expect(ui.Outputs[1]).To(Equal("app10"))
