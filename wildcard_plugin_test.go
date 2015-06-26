@@ -9,8 +9,18 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/cloudfoundry/cli/plugin/models"
 	"github.com/cloudfoundry/cli/plugin/fakes"
+	//. "github.com/cloudfoundry/cli/testhelpers/matchers"
+		//"github.com/onsi/gomega/matchers"
 	"fmt"
-	"reflect"
+	// "reflect"
+	testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
+	testcmd "github.com/cloudfoundry/cli/testhelpers/commands"
+
+
+
+
+
+	//. "github.com/cloudfoundry/cli/testhelpers/matchers"
 )
 
 //top-level describe container using Ginkgo's "Describe(text string, body func()) bool" cuntion.
@@ -19,9 +29,15 @@ var _ = Describe("WildcardPlugin", func() {
 
 	Describe("Checking for correct results to getMatchedApps", func() {
 		var (
-			wildcardPlugin Wildcard
-			fakeCliConnection *fakes.FakeCliConnection
+			
+			wildcardPlugin 		*Wildcard
+			fakeCliConnection 	*fakes.FakeCliConnection
 		)
+		runCommand := func(args ...string) bool {
+			wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
+			cmd := command_registry.Commands.FindCommand("apps")
+			return testcmd.RunCliCommand(cmd, args, requirementsFactory)
+		}
 		appsList := make([]plugin_models.ApplicationSummary, 0)
 		appsList = append(appsList,
 			plugin_models.ApplicationSummary{"spring-music", "", "", 0, 0, 0, 0, nil},
@@ -40,9 +56,11 @@ var _ = Describe("WildcardPlugin", func() {
 			plugin_models.ApplicationSummary{"app5", "", "", 0, 0, 0, 0, nil},
 			plugin_models.ApplicationSummary{"app10", "", "", 0, 0, 0, 0, nil},
 			)
+
 		BeforeEach(func() {
+			
 			fakeCliConnection = &fakes.FakeCliConnection{}
-			wildcardPlugin = Wildcard{}
+			wildcardPlugin = &Wildcard{}
 		})
 
 		Context("With wildcard asterisk(*)", func() {
@@ -123,6 +141,7 @@ var _ = Describe("WildcardPlugin", func() {
 	})
 	Describe("Checking for correct results to WildcardCommandApps", func() {
 		var (
+			ui       			*testterm.FakeUI
 			wildcardPlugin Wildcard
 			fakeCliConnection *fakes.FakeCliConnection
 		)
@@ -145,21 +164,43 @@ var _ = Describe("WildcardPlugin", func() {
 			plugin_models.ApplicationSummary{"app10", "", "", 0, 0, 0, 0, nil},
 		)
 		BeforeEach(func() {
+			ui = &testterm.FakeUI{}
 			fakeCliConnection = &fakes.FakeCliConnection{}
 			wildcardPlugin = Wildcard{}
 		})
 		Context("With wildcard asterisk(*)", func() {
 			It("should return all apps starting with 'ca'", func() {
-				output, _ := fakeCliConnection.CliCommandWithoutTerminalOutput("wc-a", "ca*")
+				wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
+				runCommand()
+				fmt.Println(len(ui.Outputs))
+				// fmt.Println(ui.Outputs[1])
+				// Expect(len(ui.Outputs[1])).To(Equal("10"))
+				// Expect(ui.Outputs[1]).To(Equal("app10"))
+
+				// Ω(ui.Outputs).Should(ConsistOf(
+				// 	[]string{"Getting apps in", "my-org", "my-space", "my-user"},
+				// 	[]string{"OK"},
+				// 	[]string{"Application-1", "started", "?/2", "512M", "1G", "app1.cfapps.io"},
+				// ))
+
+
+
+				// output, _ := fakeCliConnection.CliCommandWithoutTerminalOutput("wc-a", "ca*")
 
 				//fmt.Println(output)
-				//fmt.Println(output[0])
-				//fmt.Println(output[1])
+				// fmt.Println(output[0])
+				// fmt.Println(output[1])
+				// fmt.Println(output[2])
+				// fmt.Println(output[3])
+				// fmt.Println(output[4])
+				// fmt.Println(output[5])
+				// fmt.Println(output[6])
+
 				
-				fmt.Println(reflect.TypeOf(output))
-				fmt.Println(output[1][0])
-				fmt.Println(output[1][1])
-				// for idx, v := range output {
+				// fmt.Println(reflect.TypeOf(output))
+				// fmt.Println(output[1][0])
+				// fmt.Println(output[1][1])
+				//  for idx, v := range output {
 				// 	v = strings.TrimSpace(v)
 				// 	if strings.HasPrefix(v, "FAILED") {
 				// 		e := output[idx+1]
