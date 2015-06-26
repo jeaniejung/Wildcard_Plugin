@@ -1,0 +1,66 @@
+---
+resources:
+- name: repo-master
+  type: git
+  source:
+    uri: {{repo-master-uri}}
+
+- name: "plugin_binaries"
+  type: s3
+  source:
+    bucket: {{binary-bucket}}
+    regexp: "wildcard.all_platforms.(.+).tgz"
+    access_key_id: {{release-access-key}}
+    secret_access_key: {{release-secret-key}}
+
+- name: "version"
+  type: semver
+  source:
+    bucket: {{binary-bucket}}
+    key: "version/wildcard"
+    access_key_id: {{release-access-key}}
+    secret_access_key: {{release-secret-key}}
+
+jobs:
+- name: build-plugin
+  public: true
+  plan:
+  - get: repo
+    resource: "repo-master"
+    trigger: true
+  - task: build
+    privileged: true  # Need to install gzip
+    file: repo/ci/scripts/build/task.yml
+    config:
+      params:
+        BINARY_NAME: {{binary-name}}
+        VERSION: {{binary-version}}
+
+  - put: plugin_binaries
+    params:
+      from: "repo/output/wildcard.all_platforms.(.+).tgz"
+  - put: "version"
+    params:
+      file: "version/number"    
+
+- name: test-plugin
+  public: true
+  plan:
+  - get: "repo"
+    resource: "repo-master"
+    trigger: true
+  - get: "binaries"
+    resource: "plugin_binaries"
+    trigger: true
+
+  - task: test-plugin
+    privileged: true    # Need to run apt-get install zip...
+    file: repo/ci/scripts/test/task.yml
+    config:
+      params:
+        CF_API_ENDPOINT: {{cf_api_endpoint}}
+        CF_USER: {{cf_user}}
+        CF_PASSWD: {{cf_passwd}}
+        CF_ORG: {{cf_org}}
+        CF_SPACE: {{cf_space}}
+

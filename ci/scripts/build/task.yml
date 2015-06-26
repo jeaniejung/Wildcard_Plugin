@@ -1,0 +1,13 @@
+---
+platform: "linux"
+image: "docker:///golang"  # Run inside a docker image that bundles bosh cli
+params:
+  RELEASE_VERSION:                         # Comes from Environment variable
+  BINARY_NAME: wildcard
+  VERSION: 1.0.0
+
+inputs:  
+  - name: "repo"                           # Source Github repo or other sources to work on as input
+
+run:
+  path: "repo/ci/scripts/build/run.sh"
