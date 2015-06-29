@@ -30,13 +30,18 @@ import (
 	//for adding onto table
 	"github.com/cloudfoundry/cli/cf/formatters"
 	//"github.com/cloudfoundry/cli/cf/ui_helpers"
+	//Prompts
+	//"github.com/codegangsta/cli"
+
 
 )
 
 //Wildcard is this plugin
 type Wildcard struct {
 	ui 				terminal.UI
-	matchedApps 	[]plugin_models.ApplicationSummary
+	matchedApps 	[]plugin_models.GetAppsModel
+	pattern 		string
+	err 			error
 }
 
 //GetMetadata returns metatada
@@ -70,14 +75,21 @@ func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 }
 
 func main() { 
-	plugin.Start(new(Wildcard))
-	//plugin.Start(newWildcard())
+	plugin.Start(newWildcard())
+}
+
+func newWildcard() (*Wildcard) {
+	return &Wildcard{ui: terminal.NewUI(os.Stdin, terminal.NewTeePrinter())}
 }
 
 func (cmd *Wildcard) usage(args []string) error {
-	badArgs := 3 != len(args)
+	badArgs := 2 != len(args)
 	if badArgs {
-		return errors.New("Usage: cf wildcard-apps\n\tcf wildcard-apps APP_NAME_WITH_WILDCARD")
+		if args[0] == "wildcard-apps" {
+			return errors.New("Usage: cf wildcard-apps\n\tcf wildcard-apps APP_NAME_WITH_WILDCARD")
+		} else if args[0] == "wildcard-delete" {
+			return errors.New("Usage: cf wildcard-delete\n\tcf wildcard-delete APP_NAME_WITH_WILDCARD")
+		}
 	}
 	return nil
 }
@@ -85,7 +97,6 @@ func (cmd *Wildcard) usage(args []string) error {
 //Run runs the plugin
 //called everytime user executes the command
 func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
-	//fmt.Println(formatters.ToMegabytes("d"))
 	if args[0] == "wildcard-apps" { //checking is very imp.
 		cmd.WildcardCommandApps(cliConnection, args)
 	} else if args[0] == "wildcard-delete" {
@@ -110,22 +121,45 @@ func InitializeCliDependencies() {
 		trace.Logger = trace.NewLogger(cc_config.Trace())
 	}
 }
-func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) []plugin_models.ApplicationSummary {
-	pattern := args[1]
+//Q: How come when I add the following, the command exits?
+// func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []string) {
+// 	currOrg, _ := cliConnection.GetCurrentOrg()
+// 	currSpace, _ := cliConnection.GetCurrentSpace()
+// 	currUsername, _ := cliConnection.Username()
+// 	cmd.ui.Say(T("Getting apps in org {{.OrgName}} / space {{.SpaceName}} as {{.Username}}...",
+// 		map[string]interface{}{
+// 			"OrgName":   terminal.EntityNameColor(currOrg.Name),
+// 			"SpaceName": terminal.EntityNameColor(currSpace.Name),
+// 			"Username":  terminal.EntityNameColor(currUsername)}))
+// 	cmd.ui.Ok()
+// 	cmd.ui.Say("")
+// }
+
+func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) ([]plugin_models.GetAppsModel) {
+	if err := cmd.usage(args); err != nil {
+		fmt.Println(err) //printing
+		os.Exit(1) //failure
+	}
+	cmd.pattern = args[1]
+	//cmd.introduction(cliConnection, args)
 	output, _ := cliConnection.GetApps()
 	for i := 0; i < (len(output)); i++ {
-		ok, _ := filepath.Match(pattern, output[i].Name)
+		ok, _ := filepath.Match(cmd.pattern, output[i].Name)
 		if ok {
 			cmd.matchedApps = append(cmd.matchedApps, output[i])
 		}
 	}
+	if len(cmd.matchedApps) <= 0 {
+		fmt.Printf("No apps matching %q found", cmd.pattern)
+		fmt.Println("")
+		os.Exit(1)
+	}
 	return cmd.matchedApps
 }
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
+	cmd.getMatchedApps(cliConnection, args)
 	InitializeCliDependencies()
 	defer panic.HandlePanics()
-	cmd.getMatchedApps(cliConnection, args)
-	cmd.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
 	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
 		var urls []string
@@ -149,8 +183,30 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 
 func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string) {
 	cmd.WildcardCommandApps(cliConnection, args)
-	for _, app := range cmd.matchedApps {
-		cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
+	response := cmd.ui.Ask("Would you like to delete the apps (i)nteractively, (a)ll, or (c)ancel this command?")
+	if !strings.EqualFold(response,"a") && !strings.EqualFold(response,"all") && !strings.EqualFold(response,"i") && !strings.EqualFold(response,"interactively") {
+		fmt.Printf("Delete cancelled")
+		fmt.Println("")
+		os.Exit(1)
+	} else {
+		for _, app := range cmd.matchedApps {
+			if strings.EqualFold(response,"i") || strings.EqualFold(response,"interactively"){
+				cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name)
+			} else if strings.EqualFold(response,"a") || strings.EqualFold(response,"all") {
+				confirmation := cmd.ui.Confirm("Really delete all apps matching %q ?", cmd.pattern)
+				if !confirmation {
+					cmd.ui.Warn(T("Delete all cancelled"))
+					os.Exit(1)
+				} else {
+					fmt.Println("Deleting all apps matching %q ", cmd.pattern)
+					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
+					
+				}
+				cmd.ui.Ok()
+			} else {
+				return
+			}
+		}
 	}
 }
 
