@@ -10,12 +10,14 @@ import (
 	"github.com/cloudfoundry/cli/plugin/models"
 	"github.com/cloudfoundry/cli/plugin/fakes"
 	//. "github.com/cloudfoundry/cli/testhelpers/matchers"
-		//"github.com/onsi/gomega/matchers"
-	"fmt"
+	//"github.com/onsi/gomega/matchers"
+	// "fmt"
 	// "reflect"
-	io_helpers "github.com/cloudfoundry/cli/testhelpers/io"
-	//testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
-	//testcmd "github.com/cloudfoundry/cli/testhelpers/commands"
+	//io_helpers "github.com/cloudfoundry/cli/testhelpers/io"
+	testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
+	testcmd "github.com/cloudfoundry/cli/testhelpers/commands"
+	testapi "github.com/cloudfoundry/cli/cf/api/fakes"
+
 
 
 
@@ -141,11 +143,6 @@ var _ = Describe("WildcardPlugin", func() {
 		})
 	})
 	Describe("Checking for correct results to WildcardCommandApps", func() {
-		var (
-			//ui       			*testterm.FakeUI
-			wildcardPlugin *Wildcard
-			fakeCliConnection *fakes.FakeCliConnection
-		)
 		appsList := make([]plugin_models.ApplicationSummary, 0)
 		appsList = append(appsList,
 			plugin_models.ApplicationSummary{"spring-music", "", "", 0, 0, 0, 0, nil},
@@ -164,20 +161,51 @@ var _ = Describe("WildcardPlugin", func() {
 			plugin_models.ApplicationSummary{"app5", "", "", 0, 0, 0, 0, nil},
 			plugin_models.ApplicationSummary{"app10", "", "", 0, 0, 0, 0, nil},
 		)
+		var (
+			wildcardPlugin *Wildcard
+			fakeCliConnection *fakes.FakeCliConnection
+			ui                  *testterm.FakeUI
+			configRepo          core_config.Repository
+			appSummaryRepo      *testapi.FakeAppSummaryRepo
+			deps                command_registry.Dependency
+		)
+		runCommand := func(args ...string) bool {
+			cmd := command_registry.Commands.FindCommand("apps")
+			return testcmd.RunCliCommand(cmd, args, requirementsFactory)
+		}
+		updateCommandDependency := func(pluginCall bool) {
+			deps.Ui = ui
+			deps.Config = configRepo
+			deps.RepoLocator = deps.RepoLocator.SetAppSummaryRepository(appSummaryRepo)
+			command_registry.Commands.SetCommand(command_registry.Commands.FindCommand("apps").SetDependency(deps, pluginCall))
+		}
 		BeforeEach(func() {
-			//ui = &testterm.FakeUI{}
+			ui = &testterm.FakeUI{}
+			deps.PluginModels.AppsSummary = &appsList
+			updateCommandDependency(true)
 			fakeCliConnection = &fakes.FakeCliConnection{}
 			wildcardPlugin = &Wildcard{}
+			appSummaryRepo = &testapi.FakeAppSummaryRepo{}
+
 		})
 		Context("With wildcard asterisk(*)", func() {
 			It("should return all apps starting with 'ca'", func() {
-				fakeCliConnection.GetAppsReturns(appsList, nil)
-				output := io_helpers.CaptureOutput(func() {
-					wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
-				})
-				fmt.Println(len(output))
-				fmt.Println(len(output[0]))
-				fmt.Println(output)
+				// appSummaryRepo.GetSummariesInCurrentSpaceApps = []models.Application{}
+				runCommand()
+				Ω(pluginAppModels[0].Name).To(Equal("Application-1"))
+
+
+
+
+
+
+				// fakeCliConnection.GetAppsReturns(appsList, nil)
+				// output := io_helpers.CaptureOutput(func() {
+				// 	wildcardPlugin.Run(fakeCliConnection, []string{"wc-a", "ca*"})
+				// })
+				// fmt.Println(len(output))
+				// fmt.Println(len(output[0]))
+				// fmt.Println(output)
 				// fmt.Println(ui.Outputs[1])
 				// Expect(len(ui.Outputs[1])).To(Equal("10"))
 				// Expect(ui.Outputs[1]).To(Equal("app10"))
