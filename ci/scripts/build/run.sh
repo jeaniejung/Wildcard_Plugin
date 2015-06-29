@@ -52,3 +52,5 @@ mkdir output
 apt-get install -y gzip
 tar cvzf output/${BINARY_NAME}.all_platforms.$VERSION.tgz bin/*
 echo "Done creating the tar ball: $PWD/output/${BINARY_NAME}.all_platforms.$VERSION.tgz"
+
+echo $VERSION > output/version

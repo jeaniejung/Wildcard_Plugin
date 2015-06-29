@@ -9,17 +9,18 @@ resources:
   type: s3
   source:
     bucket: {{binary-bucket}}
-    regexp: "wildcard.all_platforms.(.+).tgz"
+    regexp: "wildcard.all_platforms.(.*).tgz"
     access_key_id: {{release-access-key}}
     secret_access_key: {{release-secret-key}}
 
-# - name: "version"
-#  type: semver
-#  source:
-#    bucket: {{binary-bucket}}
-#    key: "version/wildcard"
-#    access_key_id: {{release-access-key}}
-#    secret_access_key: {{release-secret-key}}
+- name: "version"
+  type: semver  
+  source:
+    initial_version: 0.0.1
+    bucket: {{binary-bucket}}
+    key: "version/wildcard"
+    access_key_id: {{release-access-key}}
+    secret_access_key: {{release-secret-key}}
 
 jobs:
 - name: build-plugin
@@ -38,10 +39,10 @@ jobs:
 
   - put: plugin_binaries
     params:
-      from: "repo/output/wildcard.all_platforms.(.+).tgz"
-  #- put: "version"
-  #  params:
-  #    file: "version/number"    
+      from: "repo/output/wildcard.all_platforms.(.*).tgz"
+  - put: "version"
+    params:
+      file: "repo/output/version"    
 
 - name: test-plugin
   public: true

@@ -28,11 +28,6 @@ cf -version
 
 echo "Finished installing CF binary!!"
 
-echo "Logging into CF Api endpoint: $CF_API_ENDPOINT"
-cf api $CF_API_ENDPOINT --skip-ssl-validation
-cf login -u $CF_USER -p $CF_PASSWD
-echo "Logged into CF Api endpoint: $CF_API_ENDPOINT"
-
 
 echo "Installing Plugin"
 ls $TASK_ROOT_DIR/*
@@ -45,9 +40,15 @@ tar tvf *.tgz
 plugin_binary=`echo $PWD/bin/linux/amd64/*`
 cf install-plugin $plugin_binary
 
+echo "Logging into CF Api endpoint: $CF_API_ENDPOINT"
+cf api $CF_API_ENDPOINT --skip-ssl-validation
+cf login -u $CF_USER -p $CF_PASSWD -o $CF_ORG -s $CF_SPACE
+#cf target -o $CF_ORG -s $CF_SPACE
+
+echo "Logged into CF Api endpoint: $CF_API_ENDPOINT"
+
 echo "Pushing a Test App"
 
-cf target -o $CF_ORG -s $CF_SPACE
 #cf push ...# Push the app
 
 echo "Testing the Plugin"
