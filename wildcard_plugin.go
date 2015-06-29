@@ -1,42 +1,24 @@
-//helpful link for match: https://golang.org/src/path/filepath/match_test.go
-//GetApps()'s apps-summary is WAY too limited!!! They REALLY need to improve it >:(
-//
-
 package main
 
 import (
 	"errors"
-	"fmt" //standard
+	"fmt"
 	"os"
-	//"reflect" //used to see type of object
 	"strconv"
-	"github.com/guidowb/cf-go-client/panic" //panics 
+	"github.com/guidowb/cf-go-client/panic"
 	"strings"
 	"github.com/cloudfoundry/cli/plugin/models"
-	//"github.com/cloudfoundry/cli/cf/api"
-	//"github.com/cloudfoundry/cli/cf/formatters"
-	"github.com/cloudfoundry/cli/plugin" //standard//https://github.com/cloudfoundry/cli/blob/8c310da376377c53f001d916708c056ce1558959/plugin/plugin.go
-
-	"path/filepath" //for matches//https://golang.org/pkg/path/filepath/
-	"github.com/cloudfoundry/cli/cf/terminal" //for table || https://github.com/cloudfoundry/cli/blob/4a108fd21d6633b250f6d9f46e870967cae96ac0/cf/terminal/table.go
-
-
-	//for implementing T
+	"github.com/cloudfoundry/cli/plugin"
+	"path/filepath"
+	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/cf/trace"
 	. "github.com/cloudfoundry/cli/cf/i18n"
 	"github.com/cloudfoundry/cli/cf/i18n/detection"
 	"github.com/cloudfoundry/cli/cf/configuration/core_config"
 	"github.com/cloudfoundry/cli/cf/configuration/config_helpers"
-	//for adding onto table
 	"github.com/cloudfoundry/cli/cf/formatters"
-	//"github.com/cloudfoundry/cli/cf/ui_helpers"
-	//Prompts
-	//"github.com/codegangsta/cli"
-
-
 )
 
-//Wildcard is this plugin
 type Wildcard struct {
 	ui 				terminal.UI
 	matchedApps 	[]plugin_models.GetAppsModel
@@ -44,16 +26,15 @@ type Wildcard struct {
 	err 			error
 }
 
-//GetMetadata returns metatada
 func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "wildcard",
-		Version: plugin.VersionType{ //leavealone
+		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 1,
 			Build: 0,
 		},
-		Commands: []plugin.Command{  //****** array of command structures
+		Commands: []plugin.Command{
 			{
 				Name:     "wildcard-apps",
 				Alias:	  "wc-a",
@@ -94,19 +75,14 @@ func (cmd *Wildcard) usage(args []string) error {
 	return nil
 }
 
-//Run runs the plugin
-//called everytime user executes the command
 func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
-	if args[0] == "wildcard-apps" { //checking is very imp.
+	if args[0] == "wildcard-apps" {
 		cmd.WildcardCommandApps(cliConnection, args)
 	} else if args[0] == "wildcard-delete" {
 		cmd.WildcardCommandDelete(cliConnection, args)
 	}
 }
 
-//WildcardCommand creates a new instance of this plugin
-//this is the actual implementation
-//one method per command
 func InitializeCliDependencies() {
 	errorHandler := func(err error) {
 		if err != nil {
@@ -121,7 +97,7 @@ func InitializeCliDependencies() {
 		trace.Logger = trace.NewLogger(cc_config.Trace())
 	}
 }
-//Q: How come when I add the following, the command exits?
+
 func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []string) {
 	currOrg, _ := cliConnection.GetCurrentOrg()
 	currSpace, _ := cliConnection.GetCurrentSpace()
@@ -137,8 +113,8 @@ func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []str
 
 func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) ([]plugin_models.GetAppsModel) {
 	if err := cmd.usage(args); err != nil {
-		fmt.Println(err) //printing
-		os.Exit(1) //failure
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	cmd.pattern = args[1]
 	cmd.introduction(cliConnection, args)
@@ -153,10 +129,9 @@ func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []s
 		cmd.ui.Warn(T("No apps matched."))
 		os.Exit(1)
 	}
-
-
 	return cmd.matchedApps
 }
+
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
 	InitializeCliDependencies()
 	defer panic.HandlePanics()
@@ -208,9 +183,3 @@ func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, a
 		}
 	}
 }
-
-
-
-
-
-
