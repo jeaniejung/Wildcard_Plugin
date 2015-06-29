@@ -122,18 +122,18 @@ func InitializeCliDependencies() {
 	}
 }
 //Q: How come when I add the following, the command exits?
-// func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []string) {
-// 	currOrg, _ := cliConnection.GetCurrentOrg()
-// 	currSpace, _ := cliConnection.GetCurrentSpace()
-// 	currUsername, _ := cliConnection.Username()
-// 	cmd.ui.Say(T("Getting apps in org {{.OrgName}} / space {{.SpaceName}} as {{.Username}}...",
-// 		map[string]interface{}{
-// 			"OrgName":   terminal.EntityNameColor(currOrg.Name),
-// 			"SpaceName": terminal.EntityNameColor(currSpace.Name),
-// 			"Username":  terminal.EntityNameColor(currUsername)}))
-// 	cmd.ui.Ok()
-// 	cmd.ui.Say("")
-// }
+func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []string) {
+	currOrg, _ := cliConnection.GetCurrentOrg()
+	currSpace, _ := cliConnection.GetCurrentSpace()
+	currUsername, _ := cliConnection.Username()
+	cmd.ui.Say(T("Getting apps in org {{.OrgName}} / space {{.SpaceName}} as {{.Username}}...",
+		map[string]interface{}{
+			"OrgName":   terminal.EntityNameColor(currOrg.Name),
+			"SpaceName": terminal.EntityNameColor(currSpace.Name),
+			"Username":  terminal.EntityNameColor(currUsername)}))
+	 cmd.ui.Ok()
+	 cmd.ui.Say("")
+}
 
 func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) ([]plugin_models.GetAppsModel) {
 	if err := cmd.usage(args); err != nil {
@@ -141,7 +141,7 @@ func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []s
 		os.Exit(1) //failure
 	}
 	cmd.pattern = args[1]
-	//cmd.introduction(cliConnection, args)
+	cmd.introduction(cliConnection, args)
 	output, _ := cliConnection.GetApps()
 	for i := 0; i < (len(output)); i++ {
 		ok, _ := filepath.Match(cmd.pattern, output[i].Name)
@@ -150,16 +150,17 @@ func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []s
 		}
 	}
 	if len(cmd.matchedApps) <= 0 {
-		fmt.Printf("No apps matching %q found", cmd.pattern)
-		fmt.Println("")
+		cmd.ui.Warn(T("No apps matched."))
 		os.Exit(1)
 	}
+
+
 	return cmd.matchedApps
 }
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
-	cmd.getMatchedApps(cliConnection, args)
 	InitializeCliDependencies()
 	defer panic.HandlePanics()
+	cmd.getMatchedApps(cliConnection, args)
 	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
 		var urls []string
@@ -185,22 +186,20 @@ func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, a
 	cmd.WildcardCommandApps(cliConnection, args)
 	response := cmd.ui.Ask("Would you like to delete the apps (i)nteractively, (a)ll, or (c)ancel this command?")
 	if !strings.EqualFold(response,"a") && !strings.EqualFold(response,"all") && !strings.EqualFold(response,"i") && !strings.EqualFold(response,"interactively") {
-		fmt.Printf("Delete cancelled")
-		fmt.Println("")
+		cmd.ui.Warn(T("Delete cancelled"))
 		os.Exit(1)
 	} else {
 		for _, app := range cmd.matchedApps {
 			if strings.EqualFold(response,"i") || strings.EqualFold(response,"interactively"){
 				cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name)
 			} else if strings.EqualFold(response,"a") || strings.EqualFold(response,"all") {
-				confirmation := cmd.ui.Confirm("Really delete all apps matching %q ?", cmd.pattern)
+				confirmation := cmd.ui.Confirm("Really delete all apps matching %q?", cmd.pattern)
 				if !confirmation {
 					cmd.ui.Warn(T("Delete all cancelled"))
 					os.Exit(1)
 				} else {
 					fmt.Println("Deleting all apps matching %q ", cmd.pattern)
 					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
-					
 				}
 				cmd.ui.Ok()
 			} else {
