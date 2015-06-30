@@ -108,7 +108,7 @@ func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []str
 			"SpaceName": terminal.EntityNameColor(currSpace.Name),
 			"Username":  terminal.EntityNameColor(currUsername)}))
 	 cmd.ui.Ok()
-	 cmd.ui.Say("")
+	 //cmd.ui.Say("")
 }
 
 func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) ([]plugin_models.GetAppsModel) {
@@ -126,7 +126,8 @@ func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []s
 		}
 	}
 	if len(cmd.matchedApps) <= 0 {
-		cmd.ui.Warn(T("No apps matched."))
+		//case *errors.ModelNotFoundError:
+		cmd.ui.Warn("Apps matching %s do not exist.", cmd.pattern)
 		os.Exit(1)
 	}
 	return cmd.matchedApps
