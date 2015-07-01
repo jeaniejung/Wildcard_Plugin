@@ -20,10 +20,10 @@ import (
 )
 
 type Wildcard struct {
-	ui 				terminal.UI
-	matchedApps 	[]plugin_models.GetAppsModel
-	pattern 		string
-	err 			error
+	ui 					terminal.UI
+	matchedApps 		[]plugin_models.GetAppsModel
+	pattern 			string
+	handleError			func(err error)
 }
 
 func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
@@ -60,7 +60,22 @@ func main() {
 }
 
 func newWildcard() (*Wildcard) {
-	return &Wildcard{ui: terminal.NewUI(os.Stdin, terminal.NewTeePrinter())}
+	return &Wildcard{ui: terminal.NewUI(os.Stdin, terminal.NewTeePrinter()), handleError: checkError}
+}
+
+func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
+	if args[0] == "wildcard-apps" {
+		cmd.WildcardCommandApps(cliConnection, args)
+	} else if args[0] == "wildcard-delete" {
+		cmd.WildcardCommandDelete(cliConnection, args)
+	}
+}
+
+func checkError(err error) {
+	if nil != err {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func (cmd *Wildcard) usage(args []string) error {
@@ -75,15 +90,7 @@ func (cmd *Wildcard) usage(args []string) error {
 	return nil
 }
 
-func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
-	if args[0] == "wildcard-apps" {
-		cmd.WildcardCommandApps(cliConnection, args)
-	} else if args[0] == "wildcard-delete" {
-		cmd.WildcardCommandDelete(cliConnection, args)
-	}
-}
-
-func InitializeCliDependencies() {
+func initializeCliDependencies() {
 	errorHandler := func(err error) {
 		if err != nil {
 			fmt.Sprintf("Config error: %s", err)
@@ -98,7 +105,7 @@ func InitializeCliDependencies() {
 	}
 }
 
-func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []string) {
+func (cmd *Wildcard) introduce(cliConnection plugin.CliConnection, args []string) {
 	currOrg, _ := cliConnection.GetCurrentOrg()
 	currSpace, _ := cliConnection.GetCurrentSpace()
 	currUsername, _ := cliConnection.Username()
@@ -108,16 +115,15 @@ func (cmd *Wildcard) introduction(cliConnection plugin.CliConnection, args []str
 			"SpaceName": terminal.EntityNameColor(currSpace.Name),
 			"Username":  terminal.EntityNameColor(currUsername)}))
 	 cmd.ui.Ok()
-	 //cmd.ui.Say("")
+	 cmd.ui.Say("")
 }
 
-func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []string) ([]plugin_models.GetAppsModel) {
+func (cmd *Wildcard) GetMatchedApps(cliConnection plugin.CliConnection, args []string) ([]plugin_models.GetAppsModel) {
 	if err := cmd.usage(args); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		cmd.handleError(err)
 	}
 	cmd.pattern = args[1]
-	cmd.introduction(cliConnection, args)
+	cmd.introduce(cliConnection, args)
 	output, _ := cliConnection.GetApps()
 	for i := 0; i < (len(output)); i++ {
 		ok, _ := filepath.Match(cmd.pattern, output[i].Name)
@@ -128,15 +134,15 @@ func (cmd *Wildcard) getMatchedApps(cliConnection plugin.CliConnection, args []s
 	if len(cmd.matchedApps) <= 0 {
 		//case *errors.ModelNotFoundError:
 		cmd.ui.Warn("Apps matching %s do not exist.", cmd.pattern)
-		os.Exit(1)
+		cmd.handleError(errors.New(""))
 	}
 	return cmd.matchedApps
 }
 
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
-	InitializeCliDependencies()
+	initializeCliDependencies()
 	defer panic.HandlePanics()
-	cmd.getMatchedApps(cliConnection, args)
+	cmd.GetMatchedApps(cliConnection, args)
 	table := terminal.NewTable(cmd.ui, []string{T("name"), T("requested state"), T("instances"), T("memory"), T("disk"), T("urls")})
 	for _, app := range cmd.matchedApps {
 		var urls []string
@@ -149,7 +155,7 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 		table.Add(
 			app.Name,
 			app.State, 
-			strconv.Itoa(app.RunningInstances),
+			strconv.Itoa(app.RunningInstances) + "/" + strconv.Itoa(app.TotalInstances),
 			formatters.ByteSize(app.Memory*formatters.MEGABYTE),
 			formatters.ByteSize(app.DiskQuota*formatters.MEGABYTE),
 			strings.Join(urls, ", "),
@@ -157,13 +163,12 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 	}
 	table.Print()
 }
-
 func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string) {
 	cmd.WildcardCommandApps(cliConnection, args)
 	response := cmd.ui.Ask("Would you like to delete the apps (i)nteractively, (a)ll, or (c)ancel this command?")
 	if !strings.EqualFold(response,"a") && !strings.EqualFold(response,"all") && !strings.EqualFold(response,"i") && !strings.EqualFold(response,"interactively") {
 		cmd.ui.Warn(T("Delete cancelled"))
-		os.Exit(1)
+		cmd.handleError(errors.New(""))
 	} else {
 		for _, app := range cmd.matchedApps {
 			if strings.EqualFold(response,"i") || strings.EqualFold(response,"interactively"){
@@ -172,15 +177,15 @@ func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, a
 				confirmation := cmd.ui.Confirm("Really delete all apps matching %q?", cmd.pattern)
 				if !confirmation {
 					cmd.ui.Warn(T("Delete all cancelled"))
-					os.Exit(1)
+					cmd.handleError(errors.New(""))
 				} else {
 					fmt.Println("Deleting all apps matching %q ", cmd.pattern)
 					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
 				}
-				cmd.ui.Ok()
 			} else {
 				return
 			}
 		}
+		cmd.ui.Ok()
 	}
 }
