@@ -2,222 +2,185 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"github.com/cloudfoundry/cli/plugin/fakes"
+	"github.com/cloudfoundry/cli/plugin/models"
+	io_helpers "github.com/cloudfoundry/cli/testhelpers/io"
+	. "github.com/cloudfoundry/cli/testhelpers/matchers"
+	testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/cloudfoundry/cli/testhelpers/matchers"
-	"github.com/cloudfoundry/cli/plugin/models"
-	"github.com/cloudfoundry/cli/plugin/fakes"
-	testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
 )
 
 func fakeError(err error) {
 	if err != nil {
 		fmt.Println(err)
-		
 	}
 }
+
 var _ = Describe("WildcardPlugin", func() {
 	var (
-	wildcardPlugin 			*Wildcard
-	fakeCliConnection 		*fakes.FakeCliConnection
-	ui                 	 	*testterm.FakeUI
-	//storedError 			error
+		ui                *testterm.FakeUI
+		wildcardPlugin    *Wildcard
+		fakeCliConnection *fakes.FakeCliConnection
+		appsList          []plugin_models.GetAppsModel
 	)
-	Describe("Checking for correct output from wildcard-plugin commands", func() {
-		routeList1 := make([]plugin_models.GetAppsRouteSummary, 0)
-		routeList1 = append(routeList1,
-			plugin_models.GetAppsRouteSummary{"1234", "www", plugin_models.GetAppsDomainFields{"1234", "google.com", "12345", false}},
-			plugin_models.GetAppsRouteSummary{"5678", "www",  plugin_models.GetAppsDomainFields{"5678", "yahoo.com",  "12345", false}},
-		)
-		routeList2 := make([]plugin_models.GetAppsRouteSummary, 0)
-		routeList2 = append(routeList2,
-		plugin_models.GetAppsRouteSummary{"1234", "www", plugin_models.GetAppsDomainFields{"1234", "google.com", "12345", false}},
-		plugin_models.GetAppsRouteSummary{"5678", "www",  plugin_models.GetAppsDomainFields{"5100", "naver.com",  "12345", true}},
-		)
-		appsList := make([]plugin_models.GetAppsModel, 0)
-		//https://github.com/cloudfoundry/cli/blob/9f626377579452fa47be96998842afc9f78aa2ad/plugin/models/app_summary.go
-		appsList = append(appsList,
-			plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"spring-master", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"spring-nana", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"spring-spring", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"springtime", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"cake", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"carrot", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"car", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"c", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"app1", "1234-5678-90", "started", 4, 3, 512, 1024, routeList1},
-			plugin_models.GetAppsModel{"app2", "0123-0011-23", "stopped", 4, 2, 638, 512, routeList2},
-			plugin_models.GetAppsModel{"app3", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"app4", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"app5", "", "", 0, 0, 0, 0, nil},
-			plugin_models.GetAppsModel{"app10", "", "", 0, 0, 0, 0, nil},
-		)
-	
-// THIS ONE ACTUALLY PANICS - PLEASE FIX THE CODE FOR IT, THEN RE-ENABLE THE TEST
-		// Context("With no arguments", func() { //No args
-			// BeforeEach(func() {
-			// 	ui = &testterm.FakeUI{}
-			// 	fakeCliConnection = &fakes.FakeCliConnection{}
-			// 	wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
-			// })
-		// 	It("should display usage then exit", func() {
-		// 		wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps"})
-		// 		Expect(ui.Outputs).To(ContainSubstrings(
-		// 			[]string{"Usage:", "cf", "wildcard-apps", "APP_NAME_WITH_WILDCARD"},
-		// 		))
-		// 	})
-		// })
-		// // Context("With too many arguments", func() { //Too many args
-		// // 	It("should display usage", func() {
-		// // 		wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app1", "app2"})
-		// // 		Expect(ui.Outputs).To(ContainSubstrings(
-		// // 			[]string{"Usage:", "cf", "wildcard-apps", "APP_NAME_WITH_WILDCARD"},
-		// // 		))
-		// // 	})
-		// // })
+	Context("When running wildcard-apps", func() {
 		BeforeEach(func() {
-			
+			appsList = make([]plugin_models.GetAppsModel, 0)
+			appsList = append(appsList,
+				plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
+				plugin_models.GetAppsModel{"app321", "", "", 0, 0, 0, 0, nil},
+			)
+			fakeCliConnection = &fakes.FakeCliConnection{}
+			wildcardPlugin = &Wildcard{}
 		})
-		Context("With wildcard-apps", func() { 
-			BeforeEach(func() {
-				ui = &testterm.FakeUI{}
-				fakeCliConnection = &fakes.FakeCliConnection{}
-				wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
+
+		Describe("When there are matching apps", func() {
+			It("prints a table containing only those apps", func() {
 				fakeCliConnection.GetAppsReturns(appsList, nil)
-			})
-			// fakeCliConnection.GetAppsReturns(appsList, nil)
-			// It("should display org, space, and username", func() { //introduce
-				// fakeCliConnection.GetAppsReturns(appsList, nil)
-			// 	wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app1"})
-			// 	Expect(ui.Outputs).To(ContainSubstrings(
-			// 		[]string{"name", "requested state", "instances", "memory", "disk", "urls"},
-			// 		[]string{"name", "requested state", "instances", "memory", "disk", "urls"},
-			// 		[]string{"app1", "started", "3/4", "512M", "1G", "www.google.com", "www.yahoo.com"},
-			// 	))
-			// })
-			It("should display all columns", func() { //table
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app1"})
-				Expect(ui.Outputs).To(ContainSubstrings(
-					[]string{"name", "requested state", "instances", "memory", "disk", "urls"},
-					[]string{"app1", "started", "3/4", "512M", "1G", "www.google.com", "www.yahoo.com"},
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*"})
+				})
+
+				Expect(output).To(ContainSubstrings(
+					[]string{"app321"},
 				))
-			})
-			It("should display no apps matching", func() { //no matched apps
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "noMatch*"})
-				Expect(ui.Outputs).ToNot(ContainSubstrings(
-					[]string{"app1"},
-					[]string{"app2"},
-					[]string{"app3"},
-					[]string{"app4"},
-					[]string{"app5"},
-					[]string{"app10"},
-				))
-			})
-			It("lists all apps", func() {
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*"})
-				Expect(ui.Outputs).To(ContainSubstrings( //matches
-					[]string{"app1"},
-					[]string{"app2"},
-					[]string{"app3"},
-					[]string{"app4"},
-					[]string{"app5"},
+				Expect(output).ToNot(ContainSubstrings(
+					[]string{"spring-music"},
 				))
 			})
 		})
-		Context("With wildcard-delete interactive", func() { 
-			// BeforeEach(func() {
-			// 	fakeCliConnection = &fakes.FakeCliConnection{}
-			// 	fakeCliConnection.GetAppsReturns(appsList, nil)
-			// })
-			It("should cancel wildcard-delete", func() { //no matched apps
-				fakeCliConnection = &fakes.FakeCliConnection{}
+
+		Describe("When there are no matching apps", func() {
+			It("prints a empty table and informs the user", func() {
 				fakeCliConnection.GetAppsReturns(appsList, nil)
-				ui = &testterm.FakeUI{Inputs: []string{"c"}}
-				wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
-				Expect(ui.Outputs).To(ContainSubstrings(
-					[]string{"app1", "started", "3/4", "512M", "1G", "www.google.com", "www.yahoo.com"},
-					[]string{"app2"},
-					[]string{"app3"},
-					[]string{"app4"},
-					[]string{"app5"},
-					[]string{"app10"},
-					[]string{"app10"},
-					[]string{"Delete cancelled"},
-					[]string{"OK"},
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "foo*"})
+				})
+
+				Expect(output).To(ContainSubstrings(
+					[]string{"name"},
+					[]string{"requested state"},
+					[]string{"instances"},
+					[]string{"No apps found matching foo*"},
 				))
-				Expect(ui.Outputs).ToNot(ContainSubstrings(
-					[]string{"cake"},
+				Expect(output).ToNot(ContainSubstrings(
+					[]string{"spring-music"},
+					[]string{"app321"},
 				))
 			})
-			It("should not delete any apps", func() { //table
-				ui = &testterm.FakeUI{Inputs: []string{"i", "n", "n", "n", "n", "n", "n"}}
-				wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
-				Expect(ui.Outputs).To(ContainSubstrings(
-					[]string{"app1"},
-					[]string{"app2"},
-					[]string{"app3"},
-					[]string{"app4"},
-					[]string{"app5"},
-					[]string{"app10"},
-					[]string{"OK"},
-				))
-				Expect(ui.Outputs).ToNot(ContainSubstrings(
-					[]string{"cake"},
-				))
-			})
-			It("should contain all apps", func() { //table
-				ui = &testterm.FakeUI{Inputs: []string{}}
-				wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*"})
-				Expect(ui.Outputs).To(ContainSubstrings(
-					[]string{"app1"},
-					[]string{"app2"},
-					[]string{"app3"},
-					[]string{"app4"},
-					[]string{"app5"},
-					[]string{"app10"},
-					[]string{"OK"},
-				))
-				Expect(ui.Outputs).ToNot(ContainSubstrings(
-					[]string{"cake"},
-				))
-			})
-			It("should delete some apps", func() { //table
-				ui = &testterm.FakeUI{Inputs: []string{"i", "n", "y", "n", "y", "n", "y"}}
-				wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
-				Expect(ui.Outputs).To(ContainSubstrings(
-					[]string{"app1"},
-					[]string{"app2"},
-					[]string{"app3"},
-					[]string{"app4"},
-					[]string{"app5"},
-					[]string{"app10"},
-					[]string{"OK"},
-				))
-				Expect(ui.Outputs).ToNot(ContainSubstrings(
-					[]string{"cake"},
-				))
-			})
-			It("should only have some apps", func() { //table
-				ui = &testterm.FakeUI{Inputs: []string{}}
-				wildcardPlugin = &Wildcard{ ui: ui, handleError: fakeError}
-				wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*"})
-				Expect(ui.Outputs).To(ContainSubstrings(
-					[]string{"app1"},
-					[]string{"app3"},
-					[]string{"app5"},
-					[]string{"OK"},
-				))
-				Expect(ui.Outputs).ToNot(ContainSubstrings(
-					[]string{"app2"},
-					[]string{"app4"},
-					[]string{"app10"},
+		})
+
+		Describe("When the user provides incorrect input", func() {
+			It("prints correct usage", func() {
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*", "123*"})
+				})
+
+				Expect(output).To(ContainSubstrings(
+					[]string{"Usage"},
+					[]string{"cf wildcard-apps"},
+					[]string{"APP_NAME_WITH_WILDCARD"},
 				))
 			})
 		})
 	})
+
+	Context("wildcard-delete", func() {
+		Describe("When there are matching apps", func() {
+			BeforeEach(func() {
+				appsList = make([]plugin_models.GetAppsModel, 0)
+				appsList = append(appsList,
+					plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"app321", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
+				)
+				fakeCliConnection = &fakes.FakeCliConnection{}
+				fakeCliConnection.GetAppsReturns(appsList, nil)
+				wildcardPlugin = &Wildcard{}
+				ui = &testterm.FakeUI{}
+			})
+
+				It("does not prompt when the user provides the -f flag", func() {
+					output := io_helpers.CaptureOutput(func() {
+						wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*", "-f"})
+					})
+					Expect(output).To(ContainSubstrings(
+						[]string{"Deleting app app321"},
+						[]string{"Deleting app apple_pie"},
+					))
+					Expect(output).ToNot(ContainSubstrings(
+						[]string{"Deleting app spring-music"},
+					))
+					Expect(fakeCliConnection.CliCommandWithoutTerminalOutputCallCount()).To(Equal(2))
+					Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[0]).To(Equal("delete"))
+					Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[1]).To(Equal("app321"))
+					Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[0]).To(Equal("delete"))
+					Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[1]).To(Equal("apple_pie"))
+				})
+
+				It("prompts the user for deletion for each app", func() {
+					read, write, err := os.Pipe()
+					if err != nil {
+						fmt.Println("danger will robinson: ", err.Error())
+						os.Exit(1)
+					}
+					oldStdin := os.Stdin
+					os.Stdin = read
+					
+					output := io_helpers.CaptureOutput(func() {
+						wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
+					})
+					write.WriteString("y")
+					write.WriteString("n")
+
+					Eventually(output).Should(ContainSubstrings(
+						[]string{"name"},
+						[]string{"requested state"},
+						[]string{"instances"},
+						[]string{"Deleting app app321"},
+						[]string{"Really delete the app apple_pie"},
+					))
+					Eventually(ui.Prompts).Should(ContainSubstrings([]string{"Really delete the app app321"}))
+					Eventually(ui.Prompts).Should(ContainSubstrings([]string{"Really delete the app apple_pie"}))
+
+					Eventually(output).ShouldNot(ContainSubstrings(
+						[]string{"Deleting app apple_pie"},
+					))
+					Eventually(fakeCliConnection.CliCommandWithoutTerminalOutputCallCount()).Should(Equal(1))
+					Eventually(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[0]).Should(Equal("delete"))
+					Eventually(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[1]).Should(Equal("app321"))
+
+					os.Stdin = oldStdin
+				})
+			})
+		})
+		Context("When there are no matching apps", func() {
+			BeforeEach(func() {
+				appsList = make([]plugin_models.GetAppsModel, 0)
+				appsList = append(appsList,
+					plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"qwerty", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
+				)
+				fakeCliConnection = &fakes.FakeCliConnection{}
+				wildcardPlugin = &Wildcard{}
+				ui = &testterm.FakeUI{}
+			})
+
+			Describe("When there are no matching apps", func() {
+				It("prints no apps found", func() {
+					output := io_helpers.CaptureOutput(func() {
+						wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*", "-f"})
+					})
+					Expect(output).To(ContainSubstrings(
+						[]string{"No apps found matching foo*"},
+					))
+					Expect(output).ToNot(ContainSubstrings(
+						[]string{"Deleting app"},
+					))
+				})
+			})
+		})
 })
