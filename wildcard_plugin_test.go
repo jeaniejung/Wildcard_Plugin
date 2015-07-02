@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
+	"io"
 )
 
 func fakeError(err error) {
@@ -120,40 +121,6 @@ var _ = Describe("WildcardPlugin", func() {
 				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[1]).To(Equal("apple_pie"))
 			})
 
-			It("prompts the user for deletion for each app", func() {
-				read, write, err := os.Pipe()
-				if err != nil {
-					fmt.Println("danger will robinson: ", err.Error())
-					os.Exit(1)
-				}
-				oldStdin := os.Stdin
-				os.Stdin = read
-
-				output := io_helpers.CaptureOutput(func() {
-					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
-				})
-				write.WriteString("y")
-				write.WriteString("n")
-
-				Eventually(output).Should(ContainSubstrings(
-					[]string{"name"},
-					[]string{"requested state"},
-					[]string{"instances"},
-					[]string{"Deleting app app321"},
-					[]string{"Really delete the app apple_pie"},
-				))
-				Eventually(ui.Prompts).Should(ContainSubstrings([]string{"Really delete the app app321"}))
-				Eventually(ui.Prompts).Should(ContainSubstrings([]string{"Really delete the app apple_pie"}))
-
-				Eventually(output).ShouldNot(ContainSubstrings(
-					[]string{"Deleting app apple_pie"},
-				))
-				Eventually(fakeCliConnection.CliCommandWithoutTerminalOutputCallCount()).Should(Equal(1))
-				Eventually(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[0]).Should(Equal("delete"))
-				Eventually(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[1]).Should(Equal("app321"))
-
-				os.Stdin = oldStdin
-			})
 		})
 	})
 	Context("When there are no matching apps", func() {
@@ -168,7 +135,6 @@ var _ = Describe("WildcardPlugin", func() {
 			wildcardPlugin = &Wildcard{}
 			ui = &testterm.FakeUI{}
 		})
-
 		Describe("When there are no matching apps", func() {
 			It("prints no apps found", func() {
 				output := io_helpers.CaptureOutput(func() {
