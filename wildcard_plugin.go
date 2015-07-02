@@ -56,7 +56,7 @@ func newWildcard() *Wildcard {
 func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 	wildcardFlagSet := flag.NewFlagSet("echo", flag.ExitOnError)
 	force := wildcardFlagSet.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
-	//routes := wildcardFlagSet.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
+	routes := wildcardFlagSet.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
 	// Parse starting from [1] because the [0]th element is the
 	// name of the command and
 	err := wildcardFlagSet.Parse(args[2:])
@@ -65,7 +65,7 @@ func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 	if args[0] == "wildcard-apps" && len(args) == 2 {
 		cmd.WildcardCommandApps(cliConnection, args)
 	} else if args[0] == "wildcard-delete" && len(args) >= 2 && len(args) <= 4 {
-		cmd.WildcardCommandDelete(cliConnection, args, force)
+		cmd.WildcardCommandDelete(cliConnection, args, force, routes)
 	} else {
 		usage(args)
 	}
@@ -126,13 +126,16 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 	}
 }
 
-func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string, force *bool) {
+func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string, force *bool, routes *bool) {
 	output := getMatchedApps(cliConnection, args)
 	if !*force && len(output) > 1 {
 		cmd.WildcardCommandApps(cliConnection, args)
 	}
 	for _, app := range output {
-		if *force {
+		if *force && *routes {
+			cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f", "-r")
+			fmt.Println("Deleting app", app.Name, "and its mapped routes")
+		} else if *force {
 			cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
 			fmt.Println("Deleting app", app.Name)
 		} else {
@@ -140,8 +143,13 @@ func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, a
 			fmt.Printf("Really delete the app %s?> ", app.Name)
 			fmt.Scanf("%s", &confirmation)
 			if strings.EqualFold(confirmation, "y") || strings.EqualFold(confirmation, "yes") {
-				cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
-				fmt.Println("Deleting app", app.Name)
+				if *routes {
+					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f", "-r")
+					fmt.Println("Deleting app", app.Name, "and its mapped routes")
+				} else {
+					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
+					fmt.Println("Deleting app", app.Name)
+				}
 			}
 		}
 	}
