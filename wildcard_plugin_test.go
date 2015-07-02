@@ -49,6 +49,21 @@ var _ = Describe("WildcardPlugin", func() {
 				))
 			})
 		})
+		Describe("When there are matching apps", func() {
+			It("prints a table containing only those apps", func() {
+				fakeCliConnection.GetAppsReturns(appsList, nil)
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*"})
+				})
+
+				Expect(output).To(ContainSubstrings(
+					[]string{"app321"},
+				))
+				Expect(output).ToNot(ContainSubstrings(
+					[]string{"spring-music"},
+				))
+			})
+		})
 	})
 
 	Context("wildcard-delete -f", func() {
@@ -130,44 +145,6 @@ var _ = Describe("WildcardPlugin", func() {
 
 		})
 	})
-	Context("When the user provides incorrect input", func() {
-		BeforeEach(func() {
-			appsList = make([]plugin_models.GetAppsModel, 0)
-			appsList = append(appsList,
-				plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
-				plugin_models.GetAppsModel{"qwerty", "", "", 0, 0, 0, 0, nil},
-				plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
-			)
-			fakeCliConnection = &fakes.FakeCliConnection{}
-			wildcardPlugin = &Wildcard{}
-			ui = &testterm.FakeUI{}
-		})
-		Describe("When the user provides incorrect input for wildcard-apps", func() {
-			It("prints correct usage", func() {
-				output := io_helpers.CaptureOutput(func() {
-					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*", "123*"})
-				})
-
-				Expect(output).To(ContainSubstrings(
-					[]string{"Usage"},
-					[]string{"cf wildcard-apps"},
-					[]string{"APP_NAME_WITH_WILDCARD"},
-				))
-			})
-		})
-		Describe("When there are no matching apps for wildcard-delete", func() {
-			It("prints correct usage", func() {
-				output := io_helpers.CaptureOutput(func() {
-					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*", "asd"})
-				})
-				Expect(output).To(ContainSubstrings(
-					[]string{"Usage"},
-					[]string{"cf wildcard-delete"},
-					[]string{"APP_NAME_WITH_WILDCARD"},
-				))
-			})
-		})
-	})
 	Context("When there are no matching apps", func() {
 		BeforeEach(func() {
 			appsList = make([]plugin_models.GetAppsModel, 0)
@@ -177,12 +154,12 @@ var _ = Describe("WildcardPlugin", func() {
 				plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
 			)
 			fakeCliConnection = &fakes.FakeCliConnection{}
+			fakeCliConnection.GetAppsReturns(appsList, nil)
 			wildcardPlugin = &Wildcard{}
 			ui = &testterm.FakeUI{}
 		})
 		Describe("When there are no matching apps for wildcard-apps", func() {
 			It("prints an empty table and informs the user", func() {
-				fakeCliConnection.GetAppsReturns(appsList, nil)
 				output := io_helpers.CaptureOutput(func() {
 					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "foo*"})
 				})
@@ -202,13 +179,61 @@ var _ = Describe("WildcardPlugin", func() {
 		Describe("When there are no matching apps for wildcard-delete", func() {
 			It("prints no apps found", func() {
 				output := io_helpers.CaptureOutput(func() {
-					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*", "-f"})
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*"})
 				})
 				Expect(output).To(ContainSubstrings(
 					[]string{"No apps found matching foo*"},
 				))
 				Expect(output).ToNot(ContainSubstrings(
 					[]string{"Deleting app"},
+				))
+			})
+		})
+	})
+	Context("When any of the plugin's commands are run correctly", func() {
+		BeforeEach(func() {
+			appsList = make([]plugin_models.GetAppsModel, 0)
+			appsList = append(appsList,
+				plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
+				plugin_models.GetAppsModel{"qwerty", "", "", 0, 0, 0, 0, nil},
+				plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
+			)
+			myQuota := plugin_models.QuotaFields{}
+			myOrg := plugin_models.Organization{plugin_models.OrganizationFields{"", "Jeanie", myQuota}}
+			mySpace := plugin_models.Space{plugin_models.SpaceFields{"", "development"}}
+
+			fakeCliConnection = &fakes.FakeCliConnection{}
+			fakeCliConnection.GetAppsReturns(appsList, nil)
+			fakeCliConnection.GetCurrentOrgReturns(myOrg, nil)
+			fakeCliConnection.GetCurrentSpaceReturns(mySpace, nil)
+			fakeCliConnection.UsernameReturns("ejung@pivotal.io", nil)
+			wildcardPlugin = &Wildcard{}
+			ui = &testterm.FakeUI{}
+		})
+		Describe("When the user provides correct input for wildcard-apps", func() {
+			It("prints correct introductory message", func() {
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-apps", "app*"})
+				})
+
+				Expect(output).To(ContainSubstrings(
+					[]string{"Getting apps in org Jeanie"},
+					[]string{"space development"},
+					[]string{"as ejung@pivotal.io"},
+					[]string{"OK"},
+				))
+			})
+		})
+		Describe("When the user provides correct input for wildcard-delete", func() {
+			It("prints correct introductory message", func() {
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*"})
+				})
+				Expect(output).To(ContainSubstrings(
+					[]string{"Getting apps in org Jeanie"},
+					[]string{"space development"},
+					[]string{"as ejung@pivotal.io"},
+					[]string{"OK"},
 				))
 			})
 		})

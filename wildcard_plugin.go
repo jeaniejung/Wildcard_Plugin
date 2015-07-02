@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	// "image/color"
 )
 
 type Wildcard struct {
@@ -91,22 +90,14 @@ func checkError(err error) {
 	}
 }
 
-// func introduction(cliConnection plugin.CliConnection, args []string) {
-
-
-// }
-// func (cmd *Wildcard) introduce(cliConnection plugin.CliConnection, args []string) {
-// 	currOrg, _ := cliConnection.GetCurrentOrg()
-// 	currSpace, _ := cliConnection.GetCurrentSpace()
-// 	currUsername, _ := cliConnection.Username()
-// 	cmd.ui.Say(T("Getting apps in org {{.OrgName}} / space {{.SpaceName}} as {{.Username}}...",
-// 		map[string]interface{}{
-// 			"OrgName":   terminal.EntityNameColor(currOrg.Name),
-// 			"SpaceName": terminal.EntityNameColor(currSpace.Name),
-// 			"Username":  terminal.EntityNameColor(currUsername)}))
-// 	 cmd.ui.Ok()
-// 	 cmd.ui.Say("")
-// }
+func introduction(cliConnection plugin.CliConnection, args []string) {
+	currOrg, _ := cliConnection.GetCurrentOrg()
+	currSpace, _ := cliConnection.GetCurrentSpace()
+	currUsername, _ := cliConnection.Username()
+	fmt.Println("Getting apps in org", table.EntityNameColor(currOrg.Name), "/ space", table.EntityNameColor(currSpace.Name), "as", table.EntityNameColor(currUsername))
+	fmt.Println(table.SuccessColor("OK"))
+	fmt.Println("")
+}
 
 func getMatchedApps(cliConnection plugin.CliConnection, args []string) []plugin_models.GetAppsModel {
 	pattern := args[1]
@@ -123,7 +114,7 @@ func getMatchedApps(cliConnection plugin.CliConnection, args []string) []plugin_
 }
 
 func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
-	// introduction()
+	introduction(cliConnection, args)
 	output := getMatchedApps(cliConnection, args)
 	table := table.NewTable([]string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
 	for _, app := range output {
@@ -150,35 +141,37 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 }
 
 func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string, force *bool, routes *bool) {
-	// introduction()
 	output := getMatchedApps(cliConnection, args)
 	if !*force && len(output) > 1 {
 		cmd.WildcardCommandApps(cliConnection, args)
+	} else {
+			introduction(cliConnection, args)
 	}
 	for _, app := range output {
+		coloredAppName := table.EntityNameColor(app.Name)
 		if *force && *routes {
 			cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f", "-r")
-			fmt.Println("Deleting app", app.Name, "and its mapped routes")
+			fmt.Println("Deleting app", coloredAppName, "and its mapped routes")
 		} else if *force {
 			cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
-			fmt.Println("Deleting app", app.Name)
+			fmt.Println("Deleting app", coloredAppName)
 		} else {
 			var confirmation string
-			fmt.Printf("Really delete the app %s?> ", app.Name)
+			fmt.Printf("Really delete the app %s?%s ", table.PromptColor(app.Name), table.PromptColor(">"))
 			fmt.Scanf("%s", &confirmation)
 			if strings.EqualFold(confirmation, "y") || strings.EqualFold(confirmation, "yes") {
 				if *routes {
 					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f", "-r")
-					fmt.Println("Deleting app", app.Name, "and its mapped routes")
+					fmt.Println("Deleting app", coloredAppName, "and its mapped routes")
 				} else {
 					cliConnection.CliCommandWithoutTerminalOutput("delete", app.Name, "-f")
-					fmt.Println("Deleting app", app.Name)
+					fmt.Println("Deleting app", coloredAppName)
 				}
 			}
 		}
 	}
 	if len(output) == 0 {
-		fmt.Println("No apps found matching", args[1])
+		fmt.Println("No apps found matching", table.EntityNameColor(args[1]))
 	}
-	fmt.Println("OK")
+	fmt.Println(table.SuccessColor("OK"))
 }
