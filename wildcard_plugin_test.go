@@ -217,7 +217,7 @@ var _ = Describe("WildcardPlugin", func() {
 				})
 
 				Expect(output).To(ContainSubstrings(
-					[]string{"Getting apps in org Jeanie"},
+					[]string{"Getting apps matching app* in org Jeanie"},
 					[]string{"space development"},
 					[]string{"as ejung@pivotal.io"},
 					[]string{"OK"},
@@ -230,7 +230,7 @@ var _ = Describe("WildcardPlugin", func() {
 					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*"})
 				})
 				Expect(output).To(ContainSubstrings(
-					[]string{"Getting apps in org Jeanie"},
+					[]string{"Getting apps matching foo* in org Jeanie"},
 					[]string{"space development"},
 					[]string{"as ejung@pivotal.io"},
 					[]string{"OK"},
