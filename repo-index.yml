@@ -1,25 +1,22 @@
-- name: Scaleover
-  description: Roll traffic from one app to another by scaling over time
+- name: wildcard_plugin
+  description: Allows user to search and delete apps using wildcard(*) 
   version: _TAG_
-  created: 2015-5-27
-  updated: 2015-5-27
+  created: 2015-07-02
+  updated: 2015-07-02
   company:
   authors:
-  - name: Guido Westenberg
-    homepage: http://github.com/guidowb
-    contact: gwestenberg@pivotal.io
-  - name: Josh Kruck
-    homepage: http://github.com/krujos/
-    contact: jkruck@pivotal.io
+  - name: Eui Jin "Jeanie" Jung
+    homepage: https://github.com/jeaniejung
+    contact: jeaniejung95@gmail.com
 
-  homepage: http://github.com/krujos/scaleover-plugin
+  homepage: https://github.com/jeaniejung/Wildcard_Plugin
   binaries:
   - platform: osx
-    url: http://github.com/krujos/scaleover-plugin/raw/_TAG_/bin/osx/scaleover-plugin
+    url: http://github.com/jeaniejung/Wildcard_Plugin/raw/_TAG_/bin/osx/wildcard_plugin
     checksum: osx-sha1
   - platform: win64
-    url: http://github.com/krujos/scaleover-plugin/raw/_TAG_/bin/win64/scaleover-plugin.exe
+    url: http://github.com/jeaniejung/Wildcard_Plugin/raw/_TAG_/bin/win64/wildcard_plugin.exe
     checksum: win64-sha1
   - platform: linux64
-    url: https://github.com/krujos/scaleover-plugin/raw/_TAG_/bin/linux64/scaleover-plugin
+    url: https://github.com/jeaniejung/Wildcard_Plugin/raw/_TAG_/bin/linux64/wildcard_plugin
     checksum: linux64-sha1
