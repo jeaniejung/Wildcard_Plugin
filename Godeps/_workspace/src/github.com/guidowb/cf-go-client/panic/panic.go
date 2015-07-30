@@ -2,8 +2,8 @@ package panic
 
 import (
 	"os"
-	"strings"
 	"runtime"
+	"strings"
 
 	"github.com/cloudfoundry/cli/cf/panic_printer"
 	"github.com/cloudfoundry/cli/cf/terminal"

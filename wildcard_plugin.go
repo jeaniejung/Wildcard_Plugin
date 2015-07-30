@@ -38,7 +38,11 @@ func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 				Alias:    "wc-d",
 				HelpText: "Delete apps in the target space matching the wildcard",
 				UsageDetails: plugin.Usage{
-					Usage: "cf wildcard-delete APP_NAME_WITH_WILDCARD",
+					Usage: "cf wildcard-delete APP_NAME_WITH_WILDCARD [-f -r]",
+					// Flags: [cli.Flag] {
+					// 	cli.BoolFlag{Name: "f", Usage: "Force deletion without confirmation"}
+					// 	cli.BoolFlag{Name: "r", Usage: "Also delete any mapped routes"}
+					// }
 				},
 			},
 		},
@@ -53,23 +57,41 @@ func newWildcard() *Wildcard {
 	return &Wildcard{}
 }
 
+func reverseOrder(s []string) []string {
+	reversedString := make([]string, len(s))
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
+		reversedString[i], reversedString[j] = s[j], s[i]
+	}
+	return reversedString
+}
+
 func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
 	wildcardFlagSet := flag.NewFlagSet("echo", flag.ExitOnError)
 	force := wildcardFlagSet.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
 	routes := wildcardFlagSet.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
+	err := wildcardFlagSet.Parse(args[1:])
+
+	reversedArgs := reverseOrder(args)
+	wildcardFlagSet2 := flag.NewFlagSet("echo", flag.ExitOnError)
+	force2 := wildcardFlagSet2.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
+	routes2 := wildcardFlagSet2.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
+	err2 := wildcardFlagSet2.Parse(reversedArgs)
+
+	pattern := wildcardFlagSet.Arg(0)
+	*force = *force || *force2
+	*routes = *routes || *routes2
+
 	// Parse starting from [1] because the [0]th element is the
 	// name of the command and
-	err := wildcardFlagSet.Parse(args[2:])
+	//wildcardFlagSet's parsing begins with 1 (*asd -f -r) and args left with unchanged
+	//and wildcardFlagSet.Args() returns (*asd)
 	checkError(err)
+	checkError(err2)
 
-	if args[0] == "wildcard-apps" && len(args) == 2 {
-		cmd.WildcardCommandApps(cliConnection, args)
-	} else if args[0] == "wildcard-delete" && len(args) >= 2 && len(args) <= 4 {
-		if len(args) == 2 || *force || *routes {
-			cmd.WildcardCommandDelete(cliConnection, args, force, routes)
-		} else {
-			usage(args)
-		}
+	if args[0] == "wildcard-apps" {
+		cmd.WildcardCommandApps(cliConnection, pattern)
+	} else if args[0] == "wildcard-delete" {
+		cmd.WildcardCommandDelete(cliConnection, pattern, force, routes)
 	} else {
 		usage(args)
 	}
@@ -79,7 +101,7 @@ func usage(args []string) {
 	if args[0] == "wildcard-apps" {
 		fmt.Println("Usage: cf wildcard-apps\n\tcf wildcard-apps APP_NAME_WITH_WILDCARD")
 	} else if args[0] == "wildcard-delete" {
-		fmt.Println("Usage: cf wildcard-delete\n\tcf wildcard-delete APP_NAME_WITH_WILDCARD")
+		fmt.Println("Usage: cf wildcard-delete\n\tcf wildcard-delete APP_NAME_WITH_WILDCARD [-f -r]")
 	}
 }
 
@@ -90,17 +112,17 @@ func checkError(err error) {
 	}
 }
 
-func introduction(cliConnection plugin.CliConnection, args []string) {
+func introduction(cliConnection plugin.CliConnection, args string) {
 	currOrg, _ := cliConnection.GetCurrentOrg()
 	currSpace, _ := cliConnection.GetCurrentSpace()
 	currUsername, _ := cliConnection.Username()
-	fmt.Println("Getting apps matching", table.EntityNameColor(args[1]), "in org", table.EntityNameColor(currOrg.Name), "/ space", table.EntityNameColor(currSpace.Name), "as", table.EntityNameColor(currUsername))
+	fmt.Println("Getting apps matching", table.EntityNameColor(args), "in org", table.EntityNameColor(currOrg.Name), "/ space", table.EntityNameColor(currSpace.Name), "as", table.EntityNameColor(currUsername))
 	fmt.Println(table.SuccessColor("OK"))
 	fmt.Println("")
 }
 
-func getMatchedApps(cliConnection plugin.CliConnection, args []string) []plugin_models.GetAppsModel {
-	pattern := args[1]
+func getMatchedApps(cliConnection plugin.CliConnection, args string) []plugin_models.GetAppsModel {
+	pattern := args
 	output, err := cliConnection.GetApps()
 	checkError(err)
 	matchedApps := []plugin_models.GetAppsModel{}
@@ -113,7 +135,7 @@ func getMatchedApps(cliConnection plugin.CliConnection, args []string) []plugin_
 	return matchedApps
 }
 
-func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args []string) {
+func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, args string) {
 	introduction(cliConnection, args)
 	output := getMatchedApps(cliConnection, args)
 	mytable := table.NewTable([]string{("name"), ("requested state"), ("instances"), ("memory"), ("disk"), ("urls")})
@@ -125,10 +147,14 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 			}
 			urls = append(urls, fmt.Sprintf("%s.%s", route.Host, route.Domain.Name))
 		}
+		runningInstances := strconv.Itoa(app.RunningInstances)
+		if app.RunningInstances < 0 {
+			runningInstances = "?"
+		}
 		mytable.Add(
 			app.Name,
 			app.State,
-			strconv.Itoa(app.RunningInstances)+"/"+strconv.Itoa(app.TotalInstances),
+			runningInstances+"/"+strconv.Itoa(app.TotalInstances),
 			formatters.ByteSize(app.Memory*formatters.MEGABYTE),
 			formatters.ByteSize(app.DiskQuota*formatters.MEGABYTE),
 			strings.Join(urls, ", "),
@@ -136,14 +162,14 @@ func (cmd *Wildcard) WildcardCommandApps(cliConnection plugin.CliConnection, arg
 	}
 	mytable.Print()
 	if len(output) == 0 {
-		fmt.Println(table.WarningColor("No apps found matching"), table.WarningColor(args[1]))
+		fmt.Println(table.WarningColor("No apps found matching"), table.WarningColor(args))
 	}
 }
 
-func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args []string, force *bool, routes *bool) {
+func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, args string, force *bool, routes *bool) {
 	output := getMatchedApps(cliConnection, args)
 	exit := false
-	if !*force && len(output) > 1 {
+	if !*force && len(output) > 0 {
 		cmd.WildcardCommandApps(cliConnection, args)
 		fmt.Println("")
 		fmt.Printf("Would you like to delete the apps (%s)nteractively, (%s)ll, or (%s)ancel this command?%s", table.PromptColor("i"), table.PromptColor("a"), table.PromptColor("c"), table.PromptColor(">"))
@@ -185,7 +211,7 @@ func (cmd *Wildcard) WildcardCommandDelete(cliConnection plugin.CliConnection, a
 		}
 	}
 	if len(output) == 0 {
-		fmt.Println(table.WarningColor("No apps found matching"), table.WarningColor(args[1]))
+		fmt.Println(table.WarningColor("No apps found matching"), table.WarningColor(args))
 	} else {
 		fmt.Println(table.SuccessColor("OK"))
 	}

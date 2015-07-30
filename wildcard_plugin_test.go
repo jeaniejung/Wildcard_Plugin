@@ -64,8 +64,51 @@ var _ = Describe("WildcardPlugin", func() {
 				))
 			})
 		})
-	})
-
+	}) /**
+		Context("wildcard-delete", func() {
+			Describe("When there are matching apps", func() {
+				BeforeEach(func() {
+					appsList = make([]plugin_models.GetAppsModel, 0)
+					appsList = append(appsList,
+						plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
+						plugin_models.GetAppsModel{"app1", "", "", 0, 0, 0, 0, nil},
+						plugin_models.GetAppsModel{"app2", "", "", 0, 0, 0, 0, nil},
+						plugin_models.GetAppsModel{"app3", "", "", 0, 0, 0, 0, nil},
+						plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
+					)
+					fakeCliConnection = &fakes.FakeCliConnection{}
+					fakeCliConnection.GetAppsReturns(appsList, nil)
+					wildcardPlugin = &Wildcard{}
+					ui = &testterm.FakeUI{}
+				})
+			})
+			It("Prompts the user to select delete interactive, all, or cancel", func() {
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
+				})
+				Expect(output).To(ContainSubstrings(
+					[]string{"Would you like to delete the apps"},
+					[]string{"(i)nteractively"},
+					[]string{"(a)ll"},
+					[]string{"(c)ancel"},
+				))
+				read, write, err := os.Pipe()
+				old := os.Stdin
+				os.Stdin = read
+				write.WriteBytes((Bytes)"i")
+				write.Flush()
+				Expect(output).To(ContainSubstrings(
+					[]string{"Really delete the app app1?"}
+				)
+				write.WriteBytes((Bytes)"y")
+				write.Flush()
+				Expect(output).To(ContainSubstrings(
+					[]string{"Deleting app app1?"}
+				)
+				os.Stdin = old
+			})
+		})
+	**/
 	Context("wildcard-delete -f", func() {
 		Describe("When there are matching apps", func() {
 			BeforeEach(func() {
@@ -124,6 +167,48 @@ var _ = Describe("WildcardPlugin", func() {
 			It("does not matter what the order of the flags, -f and -r, are", func() {
 				output := io_helpers.CaptureOutput(func() {
 					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*", "-r", "-f"})
+				})
+				Expect(output).To(ContainSubstrings(
+					[]string{"Deleting app app321 and its mapped routes"},
+					[]string{"Deleting app apple_pie and its mapped routes"},
+				))
+				Expect(output).ToNot(ContainSubstrings(
+					[]string{"Deleting app spring-music and its mapped routes"},
+				))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputCallCount()).To(Equal(2))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[0]).To(Equal("delete"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[1]).To(Equal("app321"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[2]).To(Equal("-f"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[3]).To(Equal("-r"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[0]).To(Equal("delete"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[1]).To(Equal("apple_pie"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[2]).To(Equal("-f"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[3]).To(Equal("-r"))
+			})
+			It("does not matter if the flags come before the pattern", func() {
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "-r", "-f", "app*"})
+				})
+				Expect(output).To(ContainSubstrings(
+					[]string{"Deleting app app321 and its mapped routes"},
+					[]string{"Deleting app apple_pie and its mapped routes"},
+				))
+				Expect(output).ToNot(ContainSubstrings(
+					[]string{"Deleting app spring-music and its mapped routes"},
+				))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputCallCount()).To(Equal(2))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[0]).To(Equal("delete"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[1]).To(Equal("app321"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[2]).To(Equal("-f"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(0)[3]).To(Equal("-r"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[0]).To(Equal("delete"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[1]).To(Equal("apple_pie"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[2]).To(Equal("-f"))
+				Expect(fakeCliConnection.CliCommandWithoutTerminalOutputArgsForCall(1)[3]).To(Equal("-r"))
+			})
+			It("does not matter if the pattern is in between the flags", func() {
+				output := io_helpers.CaptureOutput(func() {
+					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "-r", "app*", "-f"})
 				})
 				Expect(output).To(ContainSubstrings(
 					[]string{"Deleting app app321 and its mapped routes"},
@@ -224,7 +309,7 @@ var _ = Describe("WildcardPlugin", func() {
 				))
 			})
 		})
-		Describe("When the user provides correct input for wildcard-delete", func() {
+		Describe("When the user provides correct input for wildcard-delete with force", func() {
 			It("prints correct introductory message", func() {
 				output := io_helpers.CaptureOutput(func() {
 					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "foo*"})

@@ -1,27 +1,35 @@
 #!/bin/sh
 
-if [[ "$1" = "release" ]] ; then 
+if [[ "$1" = "release" ]] ; then
 	TAG="$2"
 	: ${TAG:?"Usage: build_all.sh [release] [TAG]"}
 
-	git tag | grep $TAG > /dev/null 2>&1 
-	if [ $? -eq 0 ] ; then 
+	git tag | grep $TAG > /dev/null 2>&1
+	if [ $? -eq 0 ] ; then
 		echo "$TAG exists, remove it or increment"
 		exit 1
+	else
+		MAJOR=`echo $TAG |  awk 'BEGIN {FS = "." } ; { printf $1;}'`
+		MINOR=`echo $TAG |  awk 'BEGIN {FS = "." } ; { printf $2;}'`
+		BUILD=`echo $TAG |  awk 'BEGIN {FS = "." } ; { printf $3;}'`
+
+		`sed -i .bak -e "s/Major:.*/Major: $MAJOR,/" \
+			-e "s/Minor:.*/Minor: $MINOR,/" \
+			-e "s/Build:.*/Build: $BUILD,/" usagereport.go`
 	fi
 fi
 
-GOOS=linux GOARCH=amd64 go build
+GOOS=linux GOARCH=amd64 godep go build
 LINUX64_SHA1=`cat wildcard_plugin | openssl sha1`
 mkdir -p bin/linux64
 mv wildcard_plugin bin/linux64
 
-GOOS=darwin GOARCH=amd64 go build
+GOOS=darwin GOARCH=amd64 godep go build
 OSX_SHA1=`cat wildcard_plugin | openssl sha1`
 mkdir -p bin/osx
 mv wildcard_plugin bin/osx
 
-GOOS=windows GOARCH=amd64 go build
+GOOS=windows GOARCH=amd64 godep go build
 WIN64_SHA1=`cat wildcard_plugin.exe | openssl sha1`
 mkdir -p bin/win64
 mv wildcard_plugin.exe bin/win64
@@ -34,7 +42,7 @@ sed "s/_TAG_/$TAG/" |
 cat
 
 #Final build gives developer a plugin to install
-go build
+godep go build
 
 if [[ "$1" = "release" ]] ; then 
 	git commit -am "Build version $TAG"

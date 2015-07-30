@@ -66,7 +66,7 @@ type pluralTest struct {
 	plural Plural
 }
 
-func TestArabic(t *testing.T ) {
+func TestArabic(t *testing.T) {
 	tests := []pluralTest{
 		{0, Zero},
 		{"0", Zero},
