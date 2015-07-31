@@ -20,8 +20,8 @@ func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "wildcard",
 		Version: plugin.VersionType{
-			Major: 0,
-			Minor: 1,
+			Major: 1,
+			Minor: 0,
 			Build: 0,
 		},
 		Commands: []plugin.Command{
