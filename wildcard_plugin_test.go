@@ -9,6 +9,7 @@ import (
 	testterm "github.com/cloudfoundry/cli/testhelpers/terminal"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	// "os"
 )
 
 func fakeError(err error) {
@@ -64,51 +65,50 @@ var _ = Describe("WildcardPlugin", func() {
 				))
 			})
 		})
-	}) /**
-		Context("wildcard-delete", func() {
-			Describe("When there are matching apps", func() {
-				BeforeEach(func() {
-					appsList = make([]plugin_models.GetAppsModel, 0)
-					appsList = append(appsList,
-						plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
-						plugin_models.GetAppsModel{"app1", "", "", 0, 0, 0, 0, nil},
-						plugin_models.GetAppsModel{"app2", "", "", 0, 0, 0, 0, nil},
-						plugin_models.GetAppsModel{"app3", "", "", 0, 0, 0, 0, nil},
-						plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
-					)
-					fakeCliConnection = &fakes.FakeCliConnection{}
-					fakeCliConnection.GetAppsReturns(appsList, nil)
-					wildcardPlugin = &Wildcard{}
-					ui = &testterm.FakeUI{}
-				})
-			})
-			It("Prompts the user to select delete interactive, all, or cancel", func() {
-				output := io_helpers.CaptureOutput(func() {
-					wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
-				})
-				Expect(output).To(ContainSubstrings(
-					[]string{"Would you like to delete the apps"},
-					[]string{"(i)nteractively"},
-					[]string{"(a)ll"},
-					[]string{"(c)ancel"},
-				))
-				read, write, err := os.Pipe()
-				old := os.Stdin
-				os.Stdin = read
-				write.WriteBytes((Bytes)"i")
-				write.Flush()
-				Expect(output).To(ContainSubstrings(
-					[]string{"Really delete the app app1?"}
+	})
+	Context("wildcard-delete", func() {
+		Describe("When there are matching apps", func() {
+			BeforeEach(func() {
+				appsList = make([]plugin_models.GetAppsModel, 0)
+				appsList = append(appsList,
+					plugin_models.GetAppsModel{"spring-music", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"app1", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"app2", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"app3", "", "", 0, 0, 0, 0, nil},
+					plugin_models.GetAppsModel{"apple_pie", "", "", 0, 0, 0, 0, nil},
 				)
-				write.WriteBytes((Bytes)"y")
-				write.Flush()
-				Expect(output).To(ContainSubstrings(
-					[]string{"Deleting app app1?"}
-				)
-				os.Stdin = old
+				fakeCliConnection = &fakes.FakeCliConnection{}
+				fakeCliConnection.GetAppsReturns(appsList, nil)
+				wildcardPlugin = &Wildcard{}
+				ui = &testterm.FakeUI{}
 			})
 		})
-	**/
+		// It("Prompts the user to select delete interactive, all, or cancel", func() {
+		// 	output := io_helpers.CaptureOutput(func() {
+		// 		wildcardPlugin.Run(fakeCliConnection, []string{"wildcard-delete", "app*"})
+		// 	})
+		// 	Expect(output).To(ContainSubstrings(
+		// 		[]string{"Would you like to delete the apps"},
+		// 		[]string{"(i)nteractively"},
+		// 		[]string{"(a)ll"},
+		// 		[]string{"(c)ancel"},
+		// 	))
+		// 	read, write, _ := os.Pipe()
+		// 	old := os.Stdin
+		// 	os.Stdin = read
+		// 	write.WriteString("i")
+		// 	//write.Flush()
+		// 	Expect(output).To(ContainSubstrings(
+		// 		[]string{"Really delete the app app1?"},
+		// 	))
+		// 	write.WriteString("")
+		// 	//write.Flush()
+		// 	Expect(output).To(ContainSubstrings(
+		// 		[]string{"Deleting app app1?"},
+		// 	))
+		// 	os.Stdin = old
+		// })
+	})
 	Context("wildcard-delete -f", func() {
 		Describe("When there are matching apps", func() {
 			BeforeEach(func() {

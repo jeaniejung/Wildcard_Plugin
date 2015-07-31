@@ -39,10 +39,6 @@ func (cmd *Wildcard) GetMetadata() plugin.PluginMetadata {
 				HelpText: "Delete apps in the target space matching the wildcard",
 				UsageDetails: plugin.Usage{
 					Usage: "cf wildcard-delete APP_NAME_WITH_WILDCARD [-f -r]",
-					// Flags: [cli.Flag] {
-					// 	cli.BoolFlag{Name: "f", Usage: "Force deletion without confirmation"}
-					// 	cli.BoolFlag{Name: "r", Usage: "Also delete any mapped routes"}
-					// }
 				},
 			},
 		},
@@ -66,31 +62,30 @@ func reverseOrder(s []string) []string {
 }
 
 func (cmd *Wildcard) Run(cliConnection plugin.CliConnection, args []string) {
-	wildcardFlagSet := flag.NewFlagSet("echo", flag.ExitOnError)
-	force := wildcardFlagSet.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
-	routes := wildcardFlagSet.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
-	err := wildcardFlagSet.Parse(args[1:])
+	if args[0] == "wildcard-apps" && len(args) <= 2 {
+		cmd.WildcardCommandApps(cliConnection, args[1])
+	} else if args[0] == "wildcard-delete" && len(args) <= 4 {
+		wildcardFlagSet := flag.NewFlagSet("echo", flag.ExitOnError)
+		force := wildcardFlagSet.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
+		routes := wildcardFlagSet.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
+		err := wildcardFlagSet.Parse(args[1:])
 
-	reversedArgs := reverseOrder(args)
-	wildcardFlagSet2 := flag.NewFlagSet("echo", flag.ExitOnError)
-	force2 := wildcardFlagSet2.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
-	routes2 := wildcardFlagSet2.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
-	err2 := wildcardFlagSet2.Parse(reversedArgs)
+		reversedArgs := reverseOrder(args)
+		wildcardFlagSet2 := flag.NewFlagSet("echo", flag.ExitOnError)
+		force2 := wildcardFlagSet2.Bool("f", false, "forces deletion of all apps matching APP_NAME_WITH_WILDCARD")
+		routes2 := wildcardFlagSet2.Bool("r", false, "delete routes asssociated with APP_NAME_WITH_WILDCARD")
+		err2 := wildcardFlagSet2.Parse(reversedArgs)
 
-	pattern := wildcardFlagSet.Arg(0)
-	*force = *force || *force2
-	*routes = *routes || *routes2
+		pattern := wildcardFlagSet.Arg(0)
+		*force = *force || *force2
+		*routes = *routes || *routes2
 
-	// Parse starting from [1] because the [0]th element is the
-	// name of the command and
-	//wildcardFlagSet's parsing begins with 1 (*asd -f -r) and args left with unchanged
-	//and wildcardFlagSet.Args() returns (*asd)
-	checkError(err)
-	checkError(err2)
-
-	if args[0] == "wildcard-apps" {
-		cmd.WildcardCommandApps(cliConnection, pattern)
-	} else if args[0] == "wildcard-delete" {
+		// Parse starting from [1] because the [0]th element is the
+		// name of the command and
+		//wildcardFlagSet's parsing begins with 1 (*asd -f -r) and args left with unchanged
+		//and wildcardFlagSet.Args() returns (*asd)
+		checkError(err)
+		checkError(err2)
 		cmd.WildcardCommandDelete(cliConnection, pattern, force, routes)
 	} else {
 		usage(args)
