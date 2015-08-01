@@ -49,15 +49,15 @@ $ cf uninstall-plugin wildcard_plugin
 
 | command/option | usage | description|
 | :--------------- |:---------------| :------------|
-|`wildcard-apps, wc-a`| `cf wc-a APP_NAME_WITH_WILDCARD` |Displays list of matched apps in current space|
+|`wildcard-apps, wc-a`| `cf wc-a APP_NAME_WITH_WILDCARD` |List all apps in the target space matching the wildcard pattern|
 
 ## Commands for wildcard-delete, wc-d
 
 | command/option | usage | description|
 | :--------------- |:---------------| :------------|
-|`wildcard-delete, wc-d`| `cf wc-d APP_NAME_WITH_WILDCARD` |Displays list of matched apps and prompts the user for interctive deletion or force deletion of all matched apps|
-|`-f`|`cf wc-d APP_NAME_WITH_WILDCARD -f`|Force deletion of all apps that match the pattern of the wildcard without confirmation|
-|`-r`|`cf wc-d APP_NAME_WITH_WILDCARD -r`|Force deletion of the routes of all apps that match the pattern of the wildcard without confirmation|
-|`-f -r`|`cf wc-d APP_NAME_WITH_WILDCARD -f -r`|Force deletion of all apps and their mapped routes that match the pattern of the wildcard without confirmation|
+|`wildcard-delete, wc-d`| `cf wc-d APP_NAME_WITH_WILDCARD` |Displays list of matched apps and prompts the user for interactive deletion or force deletion of all matched apps|
+|`-r`|`cf wc-d APP_NAME_WITH_WILDCARD -r`|Displays list of matched apps and prompts the user for interactive deletion or force deletion of all matched apps and their routes|
+|`-f`|`cf wc-d APP_NAME_WITH_WILDCARD -f`|Force deletion of all apps in the target space matching the wildcard pattern without confirmation|
+|`-f -r`|`cf wc-d APP_NAME_WITH_WILDCARD -f -r`|Force deletion of all apps and their mapped routes in the target space matching the wildcard pattern without confirmation|
 
 
