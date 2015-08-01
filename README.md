@@ -16,7 +16,7 @@ $ set +f
 #### Install from CLI (v.6.10.0 and up)
 ```
 $ cf add-plugin-repo CF-Community http://plugins.cloudfoundry.org/
-$ cf install-plugin Wildcard_Plugin -r CF-Community
+$ cf install-plugin wildcard_plugin -r CF-Community
 ```
   
 #### Install from binary
