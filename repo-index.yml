@@ -1,5 +1,5 @@
 - name: wildcard_plugin
-  description: Allows user to search and delete apps using wildcard(*) 
+  description: Allows user to search through and delete their apps using wildcards 
   version: _TAG_
   created: 2015-07-02
   updated: 2015-07-02
