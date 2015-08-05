@@ -2,9 +2,10 @@
 This CF CLI Plugin allows users to search through and delete their applications using wildcards. It is useful for users who have multiple apps to manage in their spaces. 
 
 #Requirements
-Due to the in-built wildcard expansion functionality, the asterisk should be preceded by '\'. 
+To prevent your shell from expanding the wildcard before the plugin sees it, wildcards should be escaped using a preceding \.
 ```
 $ cf wc-d app\* 
+$ cf wc-a app\?
 ```
 # Installation
 
