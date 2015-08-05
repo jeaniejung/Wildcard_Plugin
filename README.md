@@ -3,7 +3,6 @@ This CF CLI Plugin allows users to search through and delete their applications 
 
 #Requirements
 Due to the in-built wildcard expansion functionality, the asterisk should be preceded by '\'. 
-e.g.
 ```
 $ cf wc-d app\* 
 ```
