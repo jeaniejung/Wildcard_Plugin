@@ -39,7 +39,7 @@ $ cf wildcard-delete APP_NAME_WITH_WILDCARD [-f -r]
 ## Uninstall
 
 ```
-$ cf uninstall-plugin wildcard_plugin
+$ cf uninstall-plugin wildcard
 ```
 ## Commands for wildcard-apps, wc-a
 
