@@ -44,13 +44,13 @@ $ cf uninstall-plugin wildcard
 ```
 ## Commands for wildcard-apps, wc-a
 
-| command/option | usage | description|
+| Command/Option | Usage | Description|
 | :--------------- |:---------------| :------------|
 |`wildcard-apps, wc-a`| `cf wc-a APP_NAME_WITH_WILDCARD` |List all apps in the target space matching the wildcard pattern|
 
 ## Commands for wildcard-delete, wc-d
 
-| command/option | usage | description|
+| Command/Option | Usage | Description|
 | :--------------- |:---------------| :------------|
 |`wildcard-delete, wc-d`| `cf wc-d APP_NAME_WITH_WILDCARD` |Displays list of matched apps and prompts the user for interactive deletion or force deletion of all matched apps|
 |`-r`|`cf wc-d APP_NAME_WITH_WILDCARD -r`|Displays list of matched apps and prompts the user for interactive deletion or force deletion of all matched apps and their routes|
