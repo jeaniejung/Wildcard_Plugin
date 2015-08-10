@@ -25,7 +25,7 @@ $ go get github.com/cloudfoundry/cli
 $ go get github.com/jeaniejung/Wildcard_Plugin
 $ cd $GOPATH/src/github.com/jeaniejung/Wildcard_Plugin
 $ go build *.go
-$ cf install-plugin $GOPATH/bin/Wildcard_Plugin/wildcard_plugin
+$ cf install-plugin wildcard_plugin
 ```
 
 ## Usage
